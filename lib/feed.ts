@@ -30,6 +30,7 @@ type FeedRow = {
   item_year: number | null;
   saved: boolean;
   reviewed: boolean;
+  my_review_id: string | null;
 };
 
 export async function getHomeFeed(
@@ -55,7 +56,8 @@ export async function getHomeFeed(
       i."imageUrl" AS item_imageurl,
       i.year     AS item_year,
       (s."itemId" IS NOT NULL) AS saved,
-      (r2."itemId" IS NOT NULL) AS reviewed
+      (r2."itemId" IS NOT NULL) AS reviewed,
+      r2.id AS my_review_id
     FROM "Review" r
     INNER JOIN "User" u ON r."userId" = u.id
     INNER JOIN "Item" i ON r."itemId" = i.id
@@ -94,6 +96,7 @@ export async function getHomeFeed(
     initialStatus[row.itemId] = {
       saved: !!row.saved,
       reviewed: !!row.reviewed,
+      ...(row.my_review_id && { reviewId: row.my_review_id }),
     };
   }
 

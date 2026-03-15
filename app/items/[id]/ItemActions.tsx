@@ -8,9 +8,10 @@ type ItemActionsProps = {
   itemId: string;
   saved: boolean;
   reviewed: boolean;
+  myReviewId?: string;
 };
 
-export function ItemActions({ itemId, saved: initialSaved, reviewed }: ItemActionsProps) {
+export function ItemActions({ itemId, saved: initialSaved, reviewed, myReviewId }: ItemActionsProps) {
   const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(false);
@@ -58,7 +59,7 @@ export function ItemActions({ itemId, saved: initialSaved, reviewed }: ItemActio
         Save
       </button>
       <Link
-        href={`/items/${itemId}/review`}
+        href={reviewed && myReviewId ? `/items/${itemId}/reviews/${myReviewId}` : `/items/${itemId}/review`}
         className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-4 py-2.5 text-xs font-medium sm:flex-none sm:px-5 ${
           reviewed ? "bg-zinc-900 text-white hover:bg-zinc-800" : "bg-zinc-900 text-white hover:bg-black"
         }`}

@@ -43,6 +43,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
   let similar: ItemViewModel[] = [];
   let saved = false;
   let reviewed = false;
+  let myReviewId: string | undefined;
 
   if (offline) {
     itemVm = {
@@ -63,7 +64,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
       where: { id },
       include: {
         reviews: {
-          select: { userId: true, rating: true },
+          select: { id: true, userId: true, rating: true },
           orderBy: { createdAt: "desc" },
         },
       },
@@ -80,7 +81,9 @@ export default async function ItemPage({ params }: ItemPageProps) {
         },
       });
       saved = !!savedRow;
-      reviewed = item.reviews.some((r) => r.userId === session.user.id);
+      const myReview = item.reviews.find((r) => r.userId === session.user.id);
+      reviewed = !!myReview;
+      myReviewId = myReview?.id;
     }
 
     const ratingCount = item.reviews.length;
@@ -223,7 +226,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
               </span>
             </div>
 
-            <ItemActions itemId={itemVm.id} saved={saved} reviewed={reviewed} />
+            <ItemActions itemId={itemVm.id} saved={saved} reviewed={reviewed} myReviewId={myReviewId} />
           </div>
         </div>
 

@@ -46,17 +46,19 @@ function StarIcon({ className = "h-4 w-4", filled }: { className?: string; fille
   );
 }
 
-export type ItemCardStatus = { saved?: boolean; reviewed?: boolean };
+export type ItemCardStatus = { saved?: boolean; reviewed?: boolean; reviewId?: string };
 
 export function ItemCard({
   item,
   saved = false,
   reviewed = false,
+  reviewId,
   onSaveToggle,
 }: {
   item: ItemCardItem;
   saved?: boolean;
   reviewed?: boolean;
+  reviewId?: string;
   onSaveToggle?: (itemId: string) => void;
 }) {
   const typeLabel =
@@ -129,7 +131,7 @@ export function ItemCard({
           <BookmarkIcon filled={saved} />
         </button>
         <Link
-          href={`/items/${item.id}/review`}
+          href={reviewed && reviewId ? `/items/${item.id}/reviews/${reviewId}` : `/items/${item.id}/review`}
           className={`transition-colors hover:text-zinc-700 ${reviewed ? "text-zinc-900" : ""}`}
           aria-label="Rate"
         >

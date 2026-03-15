@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ItemCard, type ItemCardItem, type ItemType } from "@/app/components/ItemCard";
 
-type ItemStatus = { saved: boolean; reviewed: boolean };
+type ItemStatus = { saved: boolean; reviewed: boolean; reviewId?: string };
 
 type Person = {
   id: string;
@@ -88,6 +88,7 @@ export function DiscoverPageClient({
         ...prev[itemId],
         saved: !(prev[itemId]?.saved ?? false),
         reviewed: prev[itemId]?.reviewed ?? false,
+        reviewId: prev[itemId]?.reviewId,
       },
     }));
     try {
@@ -96,7 +97,12 @@ export function DiscoverPageClient({
         const data = await res.json();
         setStatusMap((prev) => ({
           ...prev,
-          [itemId]: { ...prev[itemId], saved: data.saved, reviewed: prev[itemId]?.reviewed ?? false },
+          [itemId]: {
+            ...prev[itemId],
+            saved: data.saved,
+            reviewed: prev[itemId]?.reviewed ?? false,
+            reviewId: prev[itemId]?.reviewId,
+          },
         }));
       } else {
         setStatusMap((prev) => ({
@@ -105,6 +111,7 @@ export function DiscoverPageClient({
             ...prev[itemId],
             saved: !(prev[itemId]?.saved ?? false),
             reviewed: prev[itemId]?.reviewed ?? false,
+            reviewId: prev[itemId]?.reviewId,
           },
         }));
       }
@@ -115,6 +122,7 @@ export function DiscoverPageClient({
           ...prev[itemId],
           saved: !(prev[itemId]?.saved ?? false),
           reviewed: prev[itemId]?.reviewed ?? false,
+          reviewId: prev[itemId]?.reviewId,
         },
       }));
     }
@@ -258,6 +266,7 @@ export function DiscoverPageClient({
                       item={item}
                       saved={statusMap[item.id]?.saved ?? false}
                       reviewed={statusMap[item.id]?.reviewed ?? false}
+                      reviewId={statusMap[item.id]?.reviewId}
                       onSaveToggle={handleSaveToggle}
                     />
                   </li>

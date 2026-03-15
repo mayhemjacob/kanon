@@ -102,17 +102,19 @@ export default async function DiscoverPage({
       }),
       prisma.review.findMany({
         where: { userId, itemId: { in: ids } },
-        select: { itemId: true },
+        select: { itemId: true, id: true },
       }),
     ]);
 
     const savedSet = new Set(savedRows.map((r) => r.itemId));
-    const reviewedSet = new Set(reviewRows.map((r) => r.itemId));
+    const reviewByItem = new Map(reviewRows.map((r) => [r.itemId, r.id]));
 
     initialStatus = ids.reduce<Record<string, ItemStatus>>((acc, id) => {
+      const reviewId = reviewByItem.get(id);
       acc[id] = {
         saved: savedSet.has(id),
-        reviewed: reviewedSet.has(id),
+        reviewed: !!reviewId,
+        ...(reviewId && { reviewId }),
       };
       return acc;
     }, {});

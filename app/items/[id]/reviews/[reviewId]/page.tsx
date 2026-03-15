@@ -45,6 +45,7 @@ type ReviewPageData = {
   review: ReviewDetail;
   saved: boolean;
   reviewedByMe: boolean;
+  myReviewId?: string;
 };
 
 const offlineReview: ReviewPageData = {
@@ -101,6 +102,7 @@ export default async function ItemReviewPage({
 
     let saved = false;
     let reviewedByMe = false;
+    let myReviewId: string | undefined;
 
     if (session?.user?.id) {
       const [savedRow, myReview] = await Promise.all([
@@ -124,6 +126,7 @@ export default async function ItemReviewPage({
 
       saved = !!savedRow;
       reviewedByMe = !!myReview;
+      myReviewId = myReview?.id;
     }
 
     data = {
@@ -151,6 +154,7 @@ export default async function ItemReviewPage({
       },
       saved,
       reviewedByMe,
+      myReviewId,
     };
   }
 
@@ -158,7 +162,7 @@ export default async function ItemReviewPage({
     return notFound();
   }
 
-  const { review, saved, reviewedByMe } = data;
+  const { review, saved, reviewedByMe, myReviewId } = data;
   const item = data.review.item;
   const user = review.user;
 
@@ -228,7 +232,7 @@ export default async function ItemReviewPage({
           </div>
           <div className="flex items-center gap-2">
             <Link
-              href={`/items/${item.id}/review`}
+              href={myReviewId ? `/items/${item.id}/reviews/${myReviewId}` : `/items/${item.id}/review`}
               className={`flex h-9 w-9 items-center justify-center rounded-full border text-xs ${
                 reviewedByMe
                   ? "border-zinc-900 bg-zinc-900 text-white"

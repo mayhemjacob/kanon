@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-type ItemStatus = { saved: boolean; reviewed: boolean };
+type ItemStatus = { saved: boolean; reviewed: boolean; reviewId?: string };
 
 export type HomeReview = {
   id: string;
@@ -166,6 +166,7 @@ export function HomePageClient({
         ...prev[itemId],
         saved: !(prev[itemId]?.saved ?? false),
         reviewed: prev[itemId]?.reviewed ?? false,
+        reviewId: prev[itemId]?.reviewId,
       },
     }));
     try {
@@ -178,6 +179,7 @@ export function HomePageClient({
             ...prev[itemId],
             saved: data.saved,
             reviewed: prev[itemId]?.reviewed ?? false,
+            reviewId: prev[itemId]?.reviewId,
           },
         }));
       } else {
@@ -187,6 +189,7 @@ export function HomePageClient({
             ...prev[itemId],
             saved: !(prev[itemId]?.saved ?? false),
             reviewed: prev[itemId]?.reviewed ?? false,
+            reviewId: prev[itemId]?.reviewId,
           },
         }));
       }
@@ -197,6 +200,7 @@ export function HomePageClient({
           ...prev[itemId],
           saved: !(prev[itemId]?.saved ?? false),
           reviewed: prev[itemId]?.reviewed ?? false,
+          reviewId: prev[itemId]?.reviewId,
         },
       }));
     }
@@ -484,17 +488,19 @@ export function HomePageClient({
                             </svg>
                           )}
                         </button>
-                        <button
-                          type="button"
+                        <Link
+                          href={
+                            statusMap[review.itemId]?.reviewed &&
+                            statusMap[review.itemId]?.reviewId
+                              ? `/items/${review.itemId}/reviews/${statusMap[review.itemId].reviewId}`
+                              : `/items/${review.itemId}/review`
+                          }
                           className={`transition-colors hover:text-zinc-700 ${
                             statusMap[review.itemId]?.reviewed
                               ? "text-zinc-900"
                               : ""
                           }`}
                           aria-label="Rate"
-                          onClick={() =>
-                            router.push(`/items/${review.itemId}/review`)
-                          }
                         >
                           {statusMap[review.itemId]?.reviewed ? (
                             <svg
@@ -519,7 +525,7 @@ export function HomePageClient({
                               <path d="M12 3.5 9.6 9H4.5l4.1 3.1L6.8 18.5 12 15.3l5.2 3.2-1.8-6.4 4.1-3.1h-5.1L12 3.5z" />
                             </svg>
                           )}
-                        </button>
+                        </Link>
                       </div>
                     </div>
 
