@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ReviewEditable } from "./ReviewEditable";
 
 function formatTimeAgo(date: Date): string {
   const now = new Date();
@@ -45,10 +46,12 @@ type ReviewPageData = {
   review: ReviewDetail;
   saved: boolean;
   reviewedByMe: boolean;
+  canEdit: boolean;
   myReviewId?: string;
 };
 
 const offlineReview: ReviewPageData = {
+  canEdit: false,
   review: {
     id: "offline-review",
     rating: 9.2,
@@ -129,6 +132,8 @@ export default async function ItemReviewPage({
       myReviewId = myReview?.id;
     }
 
+    const canEdit = !!(session?.user?.id && review.userId === session.user.id);
+
     data = {
       review: {
         id: review.id,
@@ -154,6 +159,7 @@ export default async function ItemReviewPage({
       },
       saved,
       reviewedByMe,
+      canEdit,
       myReviewId,
     };
   }
@@ -162,7 +168,7 @@ export default async function ItemReviewPage({
     return notFound();
   }
 
-  const { review, saved, reviewedByMe, myReviewId } = data;
+  const { review, saved, reviewedByMe, canEdit, myReviewId } = data;
   const item = data.review.item;
   const user = review.user;
 
@@ -317,27 +323,37 @@ export default async function ItemReviewPage({
             </svg>
           </Link>
 
-          <div className="space-y-2 pt-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-              Rating
-            </div>
-            <div className="rounded-2xl border border-zinc-100 bg-zinc-50 py-6 text-center">
-              <span className="text-4xl font-semibold tracking-tight text-zinc-900">
-                {ratingDisplay}
-              </span>
-            </div>
-          </div>
+          {canEdit ? (
+            <ReviewEditable
+              reviewId={review.id}
+              initialRating={review.rating}
+              initialBody={review.body}
+            />
+          ) : (
+            <>
+              <div className="space-y-2 pt-4">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                  Rating
+                </div>
+                <div className="rounded-2xl border border-zinc-100 bg-zinc-50 py-6 text-center">
+                  <span className="text-4xl font-semibold tracking-tight text-zinc-900">
+                    {ratingDisplay}
+                  </span>
+                </div>
+              </div>
 
-          <div className="space-y-2 pt-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-              Reflection
-            </div>
-            <div className="rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-4">
-              <p className="text-sm text-zinc-800 whitespace-pre-line">
-                {review.body || "No written reflection for this review."}
-              </p>
-            </div>
-          </div>
+              <div className="space-y-2 pt-4">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                  Reflection
+                </div>
+                <div className="rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-4">
+                  <p className="text-sm text-zinc-800 whitespace-pre-line">
+                    {review.body || "No written reflection for this review."}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </section>
       </div>
     </main>
