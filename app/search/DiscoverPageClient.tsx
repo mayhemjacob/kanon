@@ -42,7 +42,7 @@ export function DiscoverPageClient({
   const [selectedRatingBands, setSelectedRatingBands] = useState<Set<RatingFilterOption>>(new Set());
   const [statusMap, setStatusMap] = useState<Record<string, ItemStatus>>(initialStatus);
 
-  const tabFromUrl = searchParams.get("tab");
+  const tabFromUrl = searchParams?.get("tab") ?? null;
   useEffect(() => {
     if (tabFromUrl === "people" || tabFromUrl === "culture") {
       setTab(tabFromUrl);
