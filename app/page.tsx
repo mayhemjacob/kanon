@@ -55,6 +55,6 @@ export default async function Home() {
     // Logged in: client fetches feed (fast TTFB, no blocking on DB)
     return <HomePageClient />;
   } catch {
-    return <HomePageClient reviews={[]} initialStatus={{}} />;
+    redirect("/login");
   }
 }
