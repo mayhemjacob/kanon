@@ -12,6 +12,7 @@ export type ItemCardItem = {
   averageRating: number;
   ratingCount: number;
   tags: string[];
+  imageUrl?: string | null;
 };
 
 function BookmarkIcon({ filled }: { filled?: boolean }) {
@@ -67,7 +68,15 @@ export function ItemCard({
         href={`/items/${item.id}`}
         className="flex min-w-0 flex-1 items-center gap-3"
       >
-        <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-zinc-200" />
+        <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-zinc-200">
+          {item.imageUrl ? (
+            <img
+              src={item.imageUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : null}
+        </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex items-center justify-between gap-2">

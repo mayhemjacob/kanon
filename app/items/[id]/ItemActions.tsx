@@ -35,7 +35,7 @@ export function ItemActions({ itemId, saved: initialSaved, reviewed }: ItemActio
   }
 
   return (
-    <div className="mt-4 flex gap-3">
+    <div className="mt-4 flex min-w-0 flex-wrap gap-3">
       <button
         type="button"
         onClick={toggleSave}

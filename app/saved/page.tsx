@@ -10,16 +10,8 @@ type SavedItem = {
   title: string;
   type: ItemType;
   year?: number | null;
+  imageUrl?: string | null;
 };
-
-const offlineSavedItems: SavedItem[] = [
-  { itemId: "1", title: "Dune: Part Two", type: "FILM" },
-  { itemId: "2", title: "Tomorrow, and Tomorrow, and Tomorrow", type: "BOOK" },
-  { itemId: "3", title: "Past Lives", type: "FILM" },
-  { itemId: "4", title: "Succession", type: "SHOW" },
-  { itemId: "5", title: "The Bear", type: "SHOW" },
-  { itemId: "6", title: "The Midnight Library", type: "BOOK" },
-];
 
 const typeOptions = ["All", "Films", "Shows", "Books"] as const;
 type TypeFilter = (typeof typeOptions)[number];
@@ -30,27 +22,32 @@ function typeLabel(type: ItemType): string {
 
 export default function SavedPage() {
   const [activeType, setActiveType] = useState<TypeFilter>("All");
-  const [savedItems, setSavedItems] = useState<SavedItem[]>(offlineSavedItems);
+  const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/saved");
+        const res = await fetch("/api/saved", { cache: "no-store" });
         if (cancelled) return;
         if (res.ok) {
           const data = await res.json();
           setSavedItems(
-            data.map((s: { itemId: string; title: string; type: ItemType; year?: number | null }) => ({
-              itemId: s.itemId,
-              title: s.title,
-              type: s.type,
-              year: s.year ?? null,
-            }))
+            (Array.isArray(data) ? data : []).map(
+              (s: { itemId: string; title: string; type: ItemType; year?: number | null; imageUrl?: string | null }) => ({
+                itemId: s.itemId,
+                title: s.title,
+                type: s.type,
+                year: s.year ?? null,
+                imageUrl: s.imageUrl ?? null,
+              })
+            )
           );
+        } else {
+          setSavedItems([]);
         }
       } catch {
-        // keep offline list when network fails
+        setSavedItems([]);
       }
     })();
     return () => {
@@ -99,7 +96,15 @@ export default function SavedPage() {
               href={`/items/${item.itemId}`}
               className="relative block overflow-hidden rounded-2xl bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2"
             >
-              <div className="aspect-[3/4] w-full bg-zinc-300" />
+              <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-300">
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : null}
+              </div>
               <span className="absolute left-2 top-2 rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
                 {typeLabel(item.type)}
               </span>

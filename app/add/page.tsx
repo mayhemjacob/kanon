@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ItemCard, type ItemCardItem, type ItemType } from "@/app/components/ItemCard";
+import { TAGS } from "@/lib/tags";
 
 // Temporary mock data for offline dev. Replace with real search later.
 const mockItems: ItemCardItem[] = [
@@ -36,38 +37,6 @@ const mockItems: ItemCardItem[] = [
   },
 ];
 
-const TAGS = [
-  "Action",
-  "Adventure",
-  "Animation",
-  "Biography",
-  "Comedy",
-  "Crime",
-  "Documentary",
-  "Drama",
-  "Fantasy",
-  "Historical",
-  "Horror",
-  "Mystery",
-  "Psychological",
-  "Romance",
-  "Sci-Fi",
-  "Thriller",
-  "True Crime",
-  "War",
-  "Western",
-  "Indie",
-  "Arthouse",
-  "Classic",
-  "Contemporary",
-  "Dark",
-  "Heartwarming",
-  "Thought-Provoking",
-  "Suspense",
-  "Satire",
-  "Coming-of-Age",
-];
-
 export default function AddContentPage() {
   const router = useRouter();
   const offline = process.env.NEXT_PUBLIC_OFFLINE_DEV === "1";
@@ -84,6 +53,8 @@ export default function AddContentPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [imageFileName, setImageFileName] = useState<string | null>(null);
 
   const results = useMemo(() => {
     if (!trimmed) return [];
@@ -106,6 +77,40 @@ export default function AddContentPage() {
     );
   }
 
+  function readFileAsDataUrl(file: File) {
+    if (!file.type.startsWith("image/")) return;
+    setImageFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : null;
+      if (result) setCoverImageUrl(result);
+    };
+    reader.onerror = () => {
+      setCoverImageUrl(null);
+      setImageFileName(null);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.target;
+    const file = input.files?.[0];
+    input.value = "";
+    if (file) readFileAsDataUrl(file);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (file) readFileAsDataUrl(file);
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formTitle) return;
@@ -126,11 +131,12 @@ export default function AddContentPage() {
       const res = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: formTitle,
-          type: formType,
-          year: formYear ? Number(formYear) : null,
-        }),
+          body: JSON.stringify({
+            title: formTitle,
+            type: formType,
+            year: formYear ? Number(formYear) : null,
+            imageUrl: coverImageUrl ?? null,
+          }),
       });
 
       if (!res.ok) {
@@ -338,28 +344,87 @@ export default function AddContentPage() {
                   <label className="text-xs font-medium text-zinc-700">
                     Image
                   </label>
-                  <label className="mt-2 flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 text-xs text-zinc-500 hover:border-zinc-400 hover:bg-zinc-100">
-                    <svg
-                      className="h-5 w-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                  {coverImageUrl ? (
+                    <div className="mt-2 flex flex-col gap-2">
+                      <div className="relative aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
+                        <img
+                          src={coverImageUrl}
+                          alt="Cover preview"
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCoverImageUrl(null);
+                            setImageFileName(null);
+                          }}
+                          className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80"
+                          aria-label="Remove image"
+                        >
+                          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 6 6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      {imageFileName && (
+                        <p className="text-[11px] text-zinc-500">{imageFileName}</p>
+                      )}
+                      <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-zinc-600 hover:text-zinc-900">
+                        <span>Change image</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageChange}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label
+                      className="mt-2 flex h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 text-xs text-zinc-500 hover:border-zinc-400 hover:bg-zinc-100"
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
                     >
-                      <path d="M4 17.5V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5Z" />
-                      <path d="M9 13.5 11.5 11l3 3.5L17 12l3 3.5" />
-                      <circle cx="9" cy="9" r="1.1" />
-                    </svg>
-                    <div className="text-xs font-medium text-zinc-700">
-                      Upload Image
-                    </div>
-                    <div className="text-[11px] text-zinc-500">
-                      Click to browse
-                    </div>
-                    <input type="file" className="hidden" />
-                  </label>
+                      <svg
+                        className="h-5 w-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M4 17.5V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5Z" />
+                        <path d="M9 13.5 11.5 11l3 3.5L17 12l3 3.5" />
+                        <circle cx="9" cy="9" r="1.1" />
+                      </svg>
+                      <div className="text-xs font-medium text-zinc-700">
+                        Upload Image
+                      </div>
+                      <div className="text-[11px] text-zinc-500">
+                        Click to browse or drag and drop
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageChange}
+                      />
+                    </label>
+                  )}
+                  <div className="mt-2">
+                    <input
+                      type="url"
+                      placeholder="Or paste image URL"
+                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10"
+                      value={coverImageUrl && coverImageUrl.startsWith("http") ? coverImageUrl : ""}
+                      onChange={(e) => {
+                        const url = e.target.value.trim();
+                        setCoverImageUrl(url || null);
+                        setImageFileName(url ? "URL" : null);
+                      }}
+                    />
+                  </div>
                 </div>
 
                 <div>

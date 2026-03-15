@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </aside>
         )}
 
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <div className="flex-1">{children}</div>
           {!hideNav && !otherUserProfile && <TabBar />}
         </div>

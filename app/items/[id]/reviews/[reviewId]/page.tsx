@@ -37,6 +37,7 @@ type ReviewDetail = {
     title: string;
     year: number | null;
     type: string;
+    imageUrl?: string | null;
   };
 };
 
@@ -64,6 +65,7 @@ const offlineReview: ReviewPageData = {
       title: "The Bear",
       year: 2023,
       type: "SHOW",
+      imageUrl: null,
     },
   },
   saved: false,
@@ -88,8 +90,8 @@ export default async function ItemReviewPage({
     const review = await prisma.review.findUnique({
       where: { id: reviewId },
       include: {
-        user: true,
-        item: true,
+        user: { select: { id: true, handle: true, name: true, email: true, image: true } },
+        item: { select: { id: true, title: true, year: true, type: true, imageUrl: true } },
       },
     });
 
@@ -144,6 +146,7 @@ export default async function ItemReviewPage({
           title: review.item.title,
           year: review.item.year ?? null,
           type: review.item.type,
+          imageUrl: review.item.imageUrl ?? null,
         },
       },
       saved,
@@ -193,7 +196,15 @@ export default async function ItemReviewPage({
               </svg>
             </Link>
             <div className="flex gap-4">
-              <div className="h-24 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-200" />
+              <div className="h-24 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : null}
+              </div>
               <div className="min-w-0 flex-1 space-y-1">
                 <h1 className="text-lg font-semibold text-zinc-900">
                   {item.title}

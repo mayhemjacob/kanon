@@ -20,6 +20,7 @@ model User {
   emailVerified DateTime?
   image         String?
   handle        String?   @unique
+  bio           String?
   hasOnboarded  Boolean   @default(false)
 
   accounts    Account[]
@@ -42,6 +43,7 @@ model Follow {
   following User @relation("FollowFollowers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
+  @@index([followerId])
 }
 
 model Account {
@@ -81,12 +83,15 @@ model VerificationToken {
 }
 
 model Item {
-  id        String    @id @default(cuid())
-  type      ItemType
-  title     String
-  year      Int?
-  imageUrl  String?
-  createdAt DateTime  @default(now())
+  id          String    @id @default(cuid())
+  type        ItemType
+  title       String
+  year        Int?
+  imageUrl    String?
+  director    String?
+  description String?
+  tags        String[]  @default([])
+  createdAt   DateTime  @default(now())
 
   reviews    Review[]
   savedBy    SavedItem[]
@@ -116,5 +121,6 @@ model Review {
   item Item @relation(fields: [itemId], references: [id])
 
   @@unique([userId, itemId])
+  @@index([userId, createdAt(sort: Desc)])
 }
 

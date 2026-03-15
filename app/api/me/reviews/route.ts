@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
+
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -15,6 +16,7 @@ export async function GET() {
       : session.user.email
       ? { email: session.user.email }
       : null;
+
   if (!where) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -23,26 +25,36 @@ export async function GET() {
     where,
     select: { id: true },
   });
+
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const saved = await prisma.savedItem.findMany({
+  const reviews = await prisma.review.findMany({
     where: { userId: user.id },
-    include: {
-      item: true,
+    select: {
+      id: true,
+      itemId: true,
+      rating: true,
+      createdAt: true,
+      item: {
+        select: { type: true, title: true, imageUrl: true, year: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
 
   return NextResponse.json(
-    saved.map((s) => ({
-      id: s.id,
-      itemId: s.item.id,
-      title: s.item.title,
-      type: s.item.type,
-      year: s.item.year,
-      imageUrl: s.item.imageUrl ?? null,
+    reviews.map((r) => ({
+      id: r.id,
+      itemId: r.itemId,
+      reviewId: r.id,
+      type: r.item.type,
+      rating: r.rating,
+      title: r.item.title,
+      imageUrl: r.item.imageUrl ?? null,
+      createdAt: r.createdAt,
+      year: r.item.year ?? null,
     }))
   );
 }

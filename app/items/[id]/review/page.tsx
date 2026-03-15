@@ -18,6 +18,7 @@ export default async function ItemReviewPage({ params }: ReviewPageProps) {
           title: "Dune: Part Two",
           year: 2024,
           tags: ["Sci-Fi", "Adventure"],
+          imageUrl: null,
         }}
       />
     );
@@ -38,6 +39,7 @@ export default async function ItemReviewPage({ params }: ReviewPageProps) {
         title: item.title,
         year: item.year ?? null,
         tags: [], // add tags to schema later if needed
+        imageUrl: item.imageUrl ?? null,
       }}
     />
   );

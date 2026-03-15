@@ -9,6 +9,7 @@ export type ReviewItemInfo = {
   title: string;
   year: number | null;
   tags: string[];
+  imageUrl?: string | null;
 };
 
 const DECIMALS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
@@ -80,7 +81,15 @@ export function ReviewPageForm({ item }: { item: ReviewItemInfo }) {
 
         {/* Item summary */}
         <div className="mb-8 flex gap-4 rounded-2xl border border-zinc-200 bg-white p-4">
-          <div className="h-20 w-14 shrink-0 overflow-hidden rounded-xl bg-zinc-200" />
+          <div className="h-20 w-14 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
+            {item.imageUrl ? (
+              <img
+                src={item.imageUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : null}
+          </div>
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-zinc-900">
               {item.title}
