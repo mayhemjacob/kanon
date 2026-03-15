@@ -211,9 +211,9 @@ export function DiscoverPageClient({
             <div className="space-y-4">
               <div className="flex flex-wrap gap-2 text-xs">
                 <span className="text-zinc-500 mr-1">Type</span>
-                {(["All", "Films", "Shows", "Books"] as const).map((label) => {
+                {(["All", "Films", "Series", "Books"] as const).map((label) => {
                   const value: "All" | ItemType =
-                    label === "All" ? "All" : label === "Films" ? "FILM" : label === "Shows" ? "SHOW" : "BOOK";
+                    label === "All" ? "All" : label === "Films" ? "FILM" : label === "Series" ? "SHOW" : "BOOK";
                   const active = typeFilter === value;
                   return (
                     <button

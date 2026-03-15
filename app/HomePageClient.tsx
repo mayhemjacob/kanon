@@ -23,7 +23,7 @@ export type HomeReview = {
   year: number | null; // for sort by publication year
 };
 
-const typeOptions = ["All", "Films", "Shows", "Books"] as const;
+const typeOptions = ["All", "Films", "Series", "Books"] as const;
 type TypeFilter = (typeof typeOptions)[number];
 
 type SortOption = "reviewDate" | "rating" | "publicationYear";
@@ -129,7 +129,7 @@ export function HomePageClient({
       if (activeType === "Films" && r.itemType !== "FILM") {
         return false;
       }
-      if (activeType === "Shows" && r.itemType !== "SHOW") {
+      if (activeType === "Series" && r.itemType !== "SHOW") {
         return false;
       }
       if (activeType === "Books" && r.itemType !== "BOOK") {
@@ -538,7 +538,7 @@ export function HomePageClient({
                           ) : null}
                           <div className="absolute left-1.5 top-1.5">
                             <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
-                              {review.itemType}
+                              {review.itemType === "SHOW" ? "SERIES" : review.itemType}
                             </span>
                           </div>
                         </div>

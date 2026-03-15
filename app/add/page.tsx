@@ -305,7 +305,7 @@ export default function AddContentPage() {
                           {type === "FILM"
                             ? "Film"
                             : type === "SHOW"
-                            ? "Show"
+                            ? "Series"
                             : "Book"}
                         </button>
                       );

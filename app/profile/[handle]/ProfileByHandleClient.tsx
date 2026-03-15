@@ -36,7 +36,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
   const [followLoading, setFollowLoading] = useState(false);
   const followRequestIdRef = useRef(0);
 
-  const [activeType, setActiveType] = useState<"All" | "Films" | "Shows" | "Books">("All");
+  const [activeType, setActiveType] = useState<"All" | "Films" | "Series" | "Books">("All");
   const [sortBy, setSortBy] = useState<SortOption>("reviewDate");
   const [sortModalOpen, setSortModalOpen] = useState(false);
 
@@ -44,7 +44,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
     let list = initialProfile.cards.filter((card) => {
       if (activeType === "All") return true;
       if (activeType === "Films" && card.type !== "FILM") return false;
-      if (activeType === "Shows" && card.type !== "SHOW") return false;
+      if (activeType === "Series" && card.type !== "SHOW") return false;
       if (activeType === "Books" && card.type !== "BOOK") return false;
       return true;
     });
@@ -155,7 +155,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
           </div>
 
           <div className="flex flex-wrap gap-2 text-xs">
-            {["All", "Films", "Shows", "Books"].map((label) => (
+            {["All", "Films", "Series", "Books"].map((label) => (
               <button
                 key={label}
                 className={`rounded-full px-3 py-1 ${
@@ -164,7 +164,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
                     : "bg-zinc-100 text-zinc-600"
                 }`}
                 onClick={() =>
-                  setActiveType(label as "All" | "Films" | "Shows" | "Books")
+                  setActiveType(label as "All" | "Films" | "Series" | "Books")
                 }
               >
                 {label}
@@ -267,7 +267,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
                     ) : null}
                     <div className="absolute left-2 top-2 flex items-center justify-between w-[calc(100%-1rem)]">
                       <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium">
-                        {card.type}
+                        {card.type === "SHOW" ? "SERIES" : card.type}
                       </span>
                       <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium">
                         {Number.isInteger(card.rating) ? card.rating : card.rating.toFixed(1)}

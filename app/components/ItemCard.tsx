@@ -60,7 +60,7 @@ export function ItemCard({
   onSaveToggle?: (itemId: string) => void;
 }) {
   const typeLabel =
-    item.type === "FILM" ? "FILM" : item.type === "SHOW" ? "SHOW" : "BOOK";
+    item.type === "FILM" ? "FILM" : item.type === "SHOW" ? "SERIES" : "BOOK";
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-zinc-50 sm:px-5">

@@ -213,7 +213,7 @@ export default async function ItemReviewPage({
                   {item.year != null && <span>{item.year}</span>}
                   {item.year != null && <span>•</span>}
                   <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-700">
-                    {item.type}
+                    {item.type === "SHOW" ? "SERIES" : item.type}
                   </span>
                 </div>
                 <Link

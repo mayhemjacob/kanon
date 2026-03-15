@@ -196,7 +196,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
                 {itemVm.type === "FILM"
                   ? "FILM"
                   : itemVm.type === "SHOW"
-                  ? "SHOW"
+                  ? "SERIES"
                   : "BOOK"}
               </span>
             </div>
@@ -270,7 +270,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
                   ) : null}
                   <div className="absolute left-2 top-2">
                     <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
-                      {item.type}
+                      {item.type === "SHOW" ? "SERIES" : item.type}
                     </span>
                   </div>
                   <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/80 px-2 py-1 text-[10px] font-medium text-white">

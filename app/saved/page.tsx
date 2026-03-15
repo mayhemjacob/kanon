@@ -13,11 +13,11 @@ type SavedItem = {
   imageUrl?: string | null;
 };
 
-const typeOptions = ["All", "Films", "Shows", "Books"] as const;
+const typeOptions = ["All", "Films", "Series", "Books"] as const;
 type TypeFilter = (typeof typeOptions)[number];
 
 function typeLabel(type: ItemType): string {
-  return type === "FILM" ? "FILM" : type === "SHOW" ? "SHOW" : "BOOK";
+  return type === "FILM" ? "FILM" : type === "SHOW" ? "SERIES" : "BOOK";
 }
 
 export default function SavedPage() {
@@ -58,7 +58,7 @@ export default function SavedPage() {
   const filtered = useMemo(() => {
     if (activeType === "All") return savedItems;
     if (activeType === "Films") return savedItems.filter((i) => i.type === "FILM");
-    if (activeType === "Shows") return savedItems.filter((i) => i.type === "SHOW");
+    if (activeType === "Series") return savedItems.filter((i) => i.type === "SHOW");
     if (activeType === "Books") return savedItems.filter((i) => i.type === "BOOK");
     return savedItems;
   }, [activeType, savedItems]);

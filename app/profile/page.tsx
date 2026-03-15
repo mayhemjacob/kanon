@@ -38,7 +38,7 @@ function ratingMatchesBand(rating: number, band: RatingFilterOption): boolean {
 export default function ProfilePage() {
   const router = useRouter();
   const [activeType, setActiveType] =
-    useState<"All" | "Films" | "Shows" | "Books">("All");
+    useState<"All" | "Films" | "Series" | "Books">("All");
   const [selectedRatingBands, setSelectedRatingBands] = useState<Set<RatingFilterOption>>(new Set());
   const [sortBy, setSortBy] = useState<SortOption>("reviewDate");
   const [sortModalOpen, setSortModalOpen] = useState(false);
@@ -116,7 +116,7 @@ export default function ProfilePage() {
   const filteredCards = useMemo(() => {
     let list = cards;
     if (activeType === "Films") list = list.filter((c) => c.type === "FILM");
-    else if (activeType === "Shows") list = list.filter((c) => c.type === "SHOW");
+    else if (activeType === "Series") list = list.filter((c) => c.type === "SHOW");
     else if (activeType === "Books") list = list.filter((c) => c.type === "BOOK");
     if (selectedRatingBands.size > 0) {
       list = list.filter((c) =>
@@ -266,7 +266,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex flex-wrap gap-2 text-xs">
-              {["All", "Films", "Shows", "Books"].map((label) => (
+              {["All", "Films", "Series", "Books"].map((label) => (
               <button
                 key={label}
                 className={`rounded-full px-3 py-1 ${
@@ -275,7 +275,7 @@ export default function ProfilePage() {
                     : "bg-zinc-100 text-zinc-600"
                 }`}
                 onClick={() =>
-                  setActiveType(label as "All" | "Films" | "Shows" | "Books")
+                  setActiveType(label as "All" | "Films" | "Series" | "Books")
                 }
               >
                 {label}
@@ -394,7 +394,7 @@ export default function ProfilePage() {
                       ) : null}
                       <div className="absolute left-2 top-2 flex items-center justify-between w-[calc(100%-1rem)]">
                         <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium">
-                          {card.type}
+                          {card.type === "SHOW" ? "SERIES" : card.type}
                         </span>
                         <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium">
                           {Number.isInteger(card.rating) ? card.rating : card.rating.toFixed(1)}

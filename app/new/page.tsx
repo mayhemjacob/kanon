@@ -55,7 +55,7 @@ export default function NewItemPage() {
               onChange={(e) => setType(e.target.value as ItemType)}
             >
               <option value="FILM">Film</option>
-              <option value="SHOW">Show</option>
+              <option value="SHOW">Series</option>
               <option value="BOOK">Book</option>
             </select>
           </div>
