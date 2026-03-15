@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Kanon",
     description: "Share what you love. Discover films, shows, and books. Review, rate, and follow friends.",
+    images: ["/og-image.png"],
   },
 };
 
