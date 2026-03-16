@@ -7,10 +7,25 @@ import { prisma } from "@/lib/prisma";
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   useSecureCookies: process.env.NODE_ENV === "production",
+  debug: process.env.NODE_ENV === "production",
+  logger: {
+    error(code, metadata) {
+      console.error("[NextAuth]", code, JSON.stringify(metadata))
+    },
+    warn(code) {
+      console.warn("[NextAuth]", code)
+    },
+    debug(code, metadata) {
+      console.debug("[NextAuth]", code, metadata)
+    },
+  },
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      httpOptions: {
+        timeout: 15000,
+      },
     }),
   ],
   session: {
