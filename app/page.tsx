@@ -1,8 +1,6 @@
-import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
-import { getHomeFeed } from "@/lib/feed";
 import { HomePageClient, type HomeReview } from "./HomePageClient";
 
 const offlineReviews: HomeReview[] = [
@@ -40,11 +38,6 @@ const offlineReviews: HomeReview[] = [
   },
 ];
 
-async function HomeFeed({ userId }: { userId: string }) {
-  const { reviews, initialStatus } = await getHomeFeed(userId);
-  return <HomePageClient reviews={reviews} initialStatus={initialStatus} />;
-}
-
 export default async function Home() {
   const offline = process.env.NEXT_PUBLIC_OFFLINE_DEV === "1";
 
@@ -59,11 +52,7 @@ export default async function Home() {
       redirect("/login");
     }
 
-    return (
-      <Suspense fallback={<HomePageClient />}>
-        <HomeFeed userId={session.user.id} />
-      </Suspense>
-    );
+    return <HomePageClient />;
   } catch {
     redirect("/login");
   }

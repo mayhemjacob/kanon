@@ -14,82 +14,90 @@ function timeAgo(from: Date): string {
   return `${days}d ago`;
 }
 
-async function getHomeFeedUncached(
-  userId: string
-): Promise<{ reviews: HomeReview[]; initialStatus: Record<string, ItemStatus> }> {
-  const following = await prisma.follow.findMany({
-    where: { followerId: userId },
-    select: { followingId: true },
-  });
-  const followingIds = following.map((f) => f.followingId);
-  if (followingIds.length === 0) {
-    return { reviews: [], initialStatus: {} };
-  }
-
-  const reviewsData = await prisma.review.findMany({
-    where: { userId: { in: followingIds } },
-    orderBy: { createdAt: "desc" },
-    take: 30,
-    include: {
-      user: { select: { handle: true, name: true, email: true, image: true } },
-      item: { select: { type: true, title: true, imageUrl: true, year: true } },
-    },
-  });
-
-  const itemIds = [...new Set(reviewsData.map((r) => r.itemId))];
-
-  const [savedRows, myReviews] = await Promise.all([
-    prisma.savedItem.findMany({
-      where: { userId, itemId: { in: itemIds } },
-      select: { itemId: true },
-    }),
-    prisma.review.findMany({
-      where: { userId, itemId: { in: itemIds } },
-      select: { itemId: true, id: true },
-    }),
-  ]);
-
-  const savedSet = new Set(savedRows.map((s) => s.itemId));
-  const reviewByItem = new Map(myReviews.map((r) => [r.itemId, r.id]));
-
-  const reviews: HomeReview[] = [];
-  const initialStatus: Record<string, ItemStatus> = {};
-
-  for (const r of reviewsData) {
-    const handle = r.user?.handle ?? r.user?.name ?? r.user?.email ?? "user";
-    const userName = String(handle).startsWith("@") ? String(handle).slice(1) : String(handle);
-    const avatarInitial = (userName[0] ?? r.user?.email?.[0] ?? "U").toUpperCase();
-    const reviewId = reviewByItem.get(r.itemId);
-
-    reviews.push({
-      id: r.id,
-      itemId: r.itemId,
-      userName,
-      avatarInitial,
-      userImage: r.user?.image ?? null,
-      rating: r.rating,
-      itemType: r.item.type as "FILM" | "SHOW" | "BOOK",
-      itemImageUrl: r.item.imageUrl ?? null,
-      title: r.item.title,
-      tags: [],
-      body: r.body ?? null,
-      timeAgo: timeAgo(r.createdAt),
-      createdAt: r.createdAt,
-      year: r.item.year ?? null,
-    });
-
-    initialStatus[r.itemId] = {
-      saved: savedSet.has(r.itemId),
-      reviewed: !!reviewId,
-      ...(reviewId && { reviewId }),
-    };
-  }
-
-  return { reviews, initialStatus };
-}
+type FeedRow = {
+  id: string;
+  itemId: string;
+  rating: number;
+  body: string | null;
+  createdAt: Date;
+  user_handle: string | null;
+  user_name: string | null;
+  user_email: string | null;
+  user_image: string | null;
+  item_type: string;
+  item_title: string;
+  item_imageurl: string | null;
+  item_year: number | null;
+  saved: boolean;
+  reviewed: boolean;
+  my_review_id: string | null;
+};
 
 export async function getHomeFeed(
   userId: string
 ): Promise<{ reviews: HomeReview[]; initialStatus: Record<string, ItemStatus> }> {
-  return getHomeFeedUncached(userId);
+  const rows = await prisma.$queryRaw<FeedRow[]>`
+    WITH following AS (
+      SELECT "followingId" FROM "Follow" WHERE "followerId" = ${userId}
+    )
+    SELECT
+      r.id,
+      r."itemId",
+      r.rating,
+      r.body,
+      r."createdAt",
+      u.handle    AS user_handle,
+      u.name     AS user_name,
+      u.email    AS user_email,
+      u.image    AS user_image,
+      i.type     AS item_type,
+      i.title    AS item_title,
+      i."imageUrl" AS item_imageurl,
+      i.year     AS item_year,
+      (s."itemId" IS NOT NULL) AS saved,
+      (r2."itemId" IS NOT NULL) AS reviewed,
+      r2.id AS my_review_id
+    FROM "Review" r
+    INNER JOIN "User" u ON r."userId" = u.id
+    INNER JOIN "Item" i ON r."itemId" = i.id
+    LEFT JOIN "SavedItem" s ON s."userId" = ${userId} AND s."itemId" = r."itemId"
+    LEFT JOIN "Review" r2 ON r2."userId" = ${userId} AND r2."itemId" = r."itemId"
+    WHERE r."userId" IN (SELECT "followingId" FROM following)
+    ORDER BY r."createdAt" DESC
+    LIMIT 50
+  `;
+
+  const reviews: HomeReview[] = [];
+  const initialStatus: Record<string, ItemStatus> = {};
+
+  for (const row of rows) {
+    const handle = row.user_handle ?? row.user_name ?? row.user_email ?? "user";
+    const userName = handle.startsWith("@") ? handle.slice(1) : handle;
+    const avatarInitial = (userName[0] ?? row.user_email?.[0] ?? "U").toUpperCase();
+
+    reviews.push({
+      id: row.id,
+      itemId: row.itemId,
+      userName,
+      avatarInitial,
+      userImage: row.user_image ?? null,
+      rating: row.rating,
+      itemType: row.item_type as "FILM" | "SHOW" | "BOOK",
+      itemImageUrl: row.item_imageurl ?? null,
+      title: row.item_title,
+      tags: [],
+      body: row.body ?? null,
+      timeAgo: timeAgo(row.createdAt),
+      createdAt: row.createdAt,
+      year: row.item_year ?? null,
+    });
+
+    initialStatus[row.itemId] = {
+      saved: !!row.saved,
+      reviewed: !!row.reviewed,
+      ...(row.my_review_id && { reviewId: row.my_review_id }),
+    };
+  }
+
+  return { reviews, initialStatus };
 }
