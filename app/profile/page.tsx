@@ -166,18 +166,43 @@ export default function ProfilePage() {
                 {profile.bio || "Add a short bio so others can get to know you."}
               </p>
               <div className="mt-3 flex items-center justify-center gap-8 text-sm">
-                <div>
-                  <div className="font-semibold">
-                    {profile.followers ?? 0}
-                  </div>
-                  <div className="text-zinc-500 text-xs">Followers</div>
-                </div>
-                <div>
-                  <div className="font-semibold">
-                    {profile.following ?? 0}
-                  </div>
-                  <div className="text-zinc-500 text-xs">Following</div>
-                </div>
+                {profile.handle ? (
+                  <>
+                    <Link
+                      href={`/profile/${profile.handle}/followers`}
+                      className="hover:opacity-80 transition-opacity"
+                    >
+                      <div className="font-semibold">
+                        {profile.followers ?? 0}
+                      </div>
+                      <div className="text-zinc-500 text-xs">Followers</div>
+                    </Link>
+                    <Link
+                      href={`/profile/${profile.handle}/following`}
+                      className="hover:opacity-80 transition-opacity"
+                    >
+                      <div className="font-semibold">
+                        {profile.following ?? 0}
+                      </div>
+                      <div className="text-zinc-500 text-xs">Following</div>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div className="font-semibold">
+                        {profile.followers ?? 0}
+                      </div>
+                      <div className="text-zinc-500 text-xs">Followers</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold">
+                        {profile.following ?? 0}
+                      </div>
+                      <div className="text-zinc-500 text-xs">Following</div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             <div className="relative ml-4">

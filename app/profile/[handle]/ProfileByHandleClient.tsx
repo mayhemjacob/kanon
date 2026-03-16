@@ -111,14 +111,20 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
           <div className="text-sm font-semibold">{initialProfile.handle}</div>
           <p className="text-sm text-zinc-600">{initialProfile.bio || "No bio yet."}</p>
           <div className="mt-3 flex items-center justify-center gap-8 text-sm">
-            <div>
+            <Link
+              href={`/profile/${initialProfile.handle.replace(/^@/, "")}/followers`}
+              className="hover:opacity-80 transition-opacity"
+            >
               <div className="font-semibold">{initialProfile.followers}</div>
               <div className="text-zinc-500 text-xs">Followers</div>
-            </div>
-            <div>
+            </Link>
+            <Link
+              href={`/profile/${initialProfile.handle.replace(/^@/, "")}/following`}
+              className="hover:opacity-80 transition-opacity"
+            >
               <div className="font-semibold">{initialProfile.following}</div>
               <div className="text-zinc-500 text-xs">Following</div>
-            </div>
+            </Link>
           </div>
           <div className="mt-4 flex justify-center">
             <button
