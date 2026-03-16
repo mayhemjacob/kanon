@@ -9,9 +9,10 @@ type ItemActionsProps = {
   saved: boolean;
   reviewed: boolean;
   myReviewId?: string;
+  variant?: "default" | "icons";
 };
 
-export function ItemActions({ itemId, saved: initialSaved, reviewed, myReviewId }: ItemActionsProps) {
+export function ItemActions({ itemId, saved: initialSaved, reviewed, myReviewId, variant = "default" }: ItemActionsProps) {
   const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,49 @@ export function ItemActions({ itemId, saved: initialSaved, reviewed, myReviewId 
     }
   }
 
+  const iconClass = "h-4 w-4";
+  const saveIcon = saved ? (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8">
+      <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" />
+    </svg>
+  ) : (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" />
+    </svg>
+  );
+  const rateIcon = reviewed ? (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8">
+      <path d="M12 3.5 9.6 9H4.5l4.1 3.1L6.8 18.5 12 15.3l5.2 3.2-1.8-6.4 4.1-3.1h-5.1L12 3.5z" />
+    </svg>
+  ) : (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5 9.6 9H4.5l4.1 3.1L6.8 18.5 12 15.3l5.2 3.2-1.8-6.4 4.1-3.1h-5.1L12 3.5z" />
+    </svg>
+  );
+
+  if (variant === "icons") {
+    return (
+      <div className="flex items-center gap-4 text-xs text-zinc-400">
+        <button
+          type="button"
+          onClick={toggleSave}
+          disabled={loading}
+          className={`transition-colors hover:text-zinc-700 disabled:opacity-60 ${saved ? "text-zinc-900" : ""}`}
+          aria-label="Save"
+        >
+          {saveIcon}
+        </button>
+        <Link
+          href={reviewed && myReviewId ? `/items/${itemId}/reviews/${myReviewId}` : `/items/${itemId}/review`}
+          className={`transition-colors hover:text-zinc-700 ${reviewed ? "text-zinc-900" : ""}`}
+          aria-label="Rate"
+        >
+          {rateIcon}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-4 flex min-w-0 flex-wrap gap-3">
       <button
@@ -47,15 +91,7 @@ export function ItemActions({ itemId, saved: initialSaved, reviewed, myReviewId 
             : "bg-zinc-100 text-zinc-800 hover:bg-zinc-200"
         } disabled:opacity-60`}
       >
-        {saved ? (
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8">
-            <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" />
-          </svg>
-        ) : (
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" />
-          </svg>
-        )}
+        {saveIcon}
         Save
       </button>
       <Link
@@ -64,15 +100,7 @@ export function ItemActions({ itemId, saved: initialSaved, reviewed, myReviewId 
           reviewed ? "bg-zinc-900 text-white hover:bg-zinc-800" : "bg-zinc-900 text-white hover:bg-black"
         }`}
       >
-        {reviewed ? (
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8">
-            <path d="M12 3.5 9.6 9H4.5l4.1 3.1L6.8 18.5 12 15.3l5.2 3.2-1.8-6.4 4.1-3.1h-5.1L12 3.5z" />
-          </svg>
-        ) : (
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3.5 9.6 9H4.5l4.1 3.1L6.8 18.5 12 15.3l5.2 3.2-1.8-6.4 4.1-3.1h-5.1L12 3.5z" />
-          </svg>
-        )}
+        {rateIcon}
         Rate
       </Link>
     </div>

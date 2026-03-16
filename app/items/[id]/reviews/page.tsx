@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import Link from "next/link";
+import { ItemActions } from "../ItemActions";
 
 function formatTimeAgo(date: Date): string {
   const now = new Date();
@@ -34,6 +37,7 @@ type ReviewWithUser = {
 type ItemWithReviews = {
   id: string;
   title: string;
+  year?: number | null;
   imageUrl?: string | null;
   reviews: ReviewWithUser[];
 };
@@ -41,6 +45,7 @@ type ItemWithReviews = {
 const offlineReviewsData: ItemWithReviews = {
   id: "1",
   title: "Dune: Part Two",
+  year: 2024,
   imageUrl: null,
   reviews: [
     {
@@ -67,23 +72,51 @@ export default async function ItemReviewsPage({
 }) {
   const { id } = await params;
   const offline = process.env.NEXT_PUBLIC_OFFLINE_DEV === "1";
+  const session = await getServerSession(authOptions);
 
   let item: ItemWithReviews | null = null;
+  let saved = false;
+  let reviewed = false;
+  let myReviewId: string | undefined;
 
   if (offline) {
     item = { ...offlineReviewsData, id };
+    saved = false;
+    reviewed = true;
+    myReviewId = "r1";
   } else {
     try {
-      const fetched = await prisma.item.findUnique({
-        where: { id },
-        include: {
-          reviews: {
-            include: { user: true },
-            orderBy: { createdAt: "desc" },
+      const [fetched, savedRow, myReview] = await Promise.all([
+        prisma.item.findUnique({
+          where: { id },
+          include: {
+            reviews: {
+              include: { user: true },
+              orderBy: { createdAt: "desc" },
+            },
           },
-        },
-      });
+        }),
+        session?.user?.id
+          ? prisma.savedItem.findUnique({
+              where: {
+                userId_itemId: { userId: session.user.id, itemId: id },
+              },
+            })
+          : null,
+        session?.user?.id
+          ? prisma.review.findUnique({
+              where: {
+                userId_itemId: { userId: session.user.id, itemId: id },
+              },
+            })
+          : null,
+      ]);
       item = fetched;
+      if (session?.user?.id) {
+        saved = !!savedRow;
+        reviewed = !!myReview;
+        myReviewId = myReview?.id;
+      }
     } catch {
       return (
         <main className="min-h-screen bg-white">
@@ -165,9 +198,21 @@ export default async function ItemReviewsPage({
             ) : null}
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold text-zinc-900">
-              {item.title}
-            </h2>
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-base font-semibold text-zinc-900">
+                {item.title}
+                {item.year != null && (
+                  <span className="font-normal text-zinc-500"> ({item.year})</span>
+                )}
+              </h2>
+              <ItemActions
+                itemId={item.id}
+                saved={saved}
+                reviewed={reviewed}
+                myReviewId={myReviewId}
+                variant="icons"
+              />
+            </div>
             <div className="mt-1 flex items-center gap-2 text-sm">
               <span className="flex items-center gap-1 font-semibold text-zinc-900">
                 <svg
@@ -181,6 +226,7 @@ export default async function ItemReviewsPage({
                 </svg>
                 {averageRating ?? "–"}
               </span>
+              <span className="text-zinc-500">•</span>
               <span className="text-zinc-500">
                 {ratingCount} {ratingCount === 1 ? "review" : "reviews"}
               </span>
