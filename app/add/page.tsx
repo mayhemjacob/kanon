@@ -136,6 +136,9 @@ export default function AddContentPage() {
             type: formType,
             year: formYear ? Number(formYear) : null,
             imageUrl: coverImageUrl ?? null,
+            director: formCreator.trim() || null,
+            description: formDescription.trim() || null,
+            tags: selectedTags,
           }),
       });
 

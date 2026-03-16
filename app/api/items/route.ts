@@ -22,6 +22,9 @@ export async function POST(req: Request) {
       title: body.title,
       year: body.year ?? null,
       imageUrl: body.imageUrl ?? null,
+      director: body.director?.trim() || null,
+      description: body.description?.trim() || null,
+      tags: Array.isArray(body.tags) ? body.tags : [],
     },
   })
 
