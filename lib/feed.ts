@@ -60,18 +60,16 @@ async function getHomeFeedUncached(
     const userName = String(handle).startsWith("@") ? String(handle).slice(1) : String(handle);
     const avatarInitial = (userName[0] ?? r.user?.email?.[0] ?? "U").toUpperCase();
     const reviewId = reviewByItem.get(r.itemId);
-    const img = r.user?.image;
-    const userImage = img && !img.startsWith("data:") ? img : null;
 
     reviews.push({
       id: r.id,
       itemId: r.itemId,
       userName,
       avatarInitial,
-      userImage,
+      userImage: r.user?.image ?? null,
       rating: r.rating,
       itemType: r.item.type as "FILM" | "SHOW" | "BOOK",
-      itemImageUrl: r.item.imageUrl?.startsWith("data:") ? null : (r.item.imageUrl ?? null),
+      itemImageUrl: r.item.imageUrl ?? null,
       title: r.item.title,
       tags: [],
       body: r.body ?? null,
