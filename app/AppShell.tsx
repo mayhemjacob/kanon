@@ -5,7 +5,14 @@ import { usePathname } from "next/navigation";
 import { TabBar, tabs } from "./components/TabBar";
 
 function isOtherUserProfile(pathname: string): boolean {
-  return pathname.startsWith("/profile/") && pathname !== "/profile";
+  if (!pathname.startsWith("/profile/") || pathname === "/profile") {
+    return false;
+  }
+  // Show tab bar on followers/following so users can always navigate
+  if (pathname.endsWith("/followers") || pathname.endsWith("/following")) {
+    return false;
+  }
+  return true;
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {

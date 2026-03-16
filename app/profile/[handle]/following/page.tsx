@@ -14,7 +14,9 @@ export default async function FollowingPage({
   params: Promise<{ handle: string }>;
 }) {
   const { handle: handleParam } = await params;
-  const handleSlug = normalizeHandle(handleParam);
+  const handleSlug = normalizeHandle(handleParam ?? "");
+  if (!handleSlug) notFound();
+
   const session = await getServerSession(authOptions);
 
   const targetUser = await prisma.user.findUnique({
@@ -78,11 +80,16 @@ export default async function FollowingPage({
         )?.handle ?? null
       : null;
 
+  // Back to /profile (has tab bar) when viewing own profile, else /profile/[handle]
+  const isOwnProfile =
+    currentUserHandle && currentUserHandle.toLowerCase() === handleSlug;
+  const backHref = isOwnProfile ? "/profile" : `/profile/${handleSlug}`;
+
   return (
     <FollowListClient
       title="Following"
       users={users}
-      backHref={`/profile/${handleSlug}`}
+      backHref={backHref}
       currentUserHandle={currentUserHandle}
     />
   );
