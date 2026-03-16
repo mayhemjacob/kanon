@@ -1,12 +1,42 @@
 import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const q = searchParams.get("q")?.trim()
+
   const items = await prisma.item.findMany({
+    where: q
+      ? {
+          title: { contains: q, mode: "insensitive" },
+        }
+      : undefined,
     orderBy: { createdAt: "desc" },
+    take: q ? 20 : 100,
+    include: { reviews: true },
   })
 
-  return NextResponse.json(items)
+  const withRating = items.map((item) => {
+    const ratingCount = item.reviews.length
+    const averageRating =
+      ratingCount === 0
+        ? 0
+        : Number(
+            (item.reviews.reduce((sum, r) => sum + r.rating, 0) / ratingCount).toFixed(1)
+          )
+    return {
+      id: item.id,
+      title: item.title,
+      year: item.year ?? 0,
+      type: item.type,
+      imageUrl: item.imageUrl,
+      averageRating,
+      ratingCount,
+      tags: item.tags ?? [],
+    }
+  })
+
+  return NextResponse.json(withRating)
 }
 
 export async function POST(req: Request) {

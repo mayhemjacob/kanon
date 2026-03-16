@@ -2,40 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ItemCard, type ItemCardItem, type ItemType } from "@/app/components/ItemCard";
 import { TAGS } from "@/lib/tags";
-
-// Temporary mock data for offline dev. Replace with real search later.
-const mockItems: ItemCardItem[] = [
-  {
-    id: "1",
-    title: "The Bear",
-    year: 2023,
-    type: "SHOW",
-    averageRating: 10,
-    ratingCount: 2,
-    tags: ["Drama", "Comedy"],
-  },
-  {
-    id: "2",
-    title: "The Baseball",
-    year: 2021,
-    type: "FILM",
-    averageRating: 8,
-    ratingCount: 5,
-    tags: ["Sports", "Drama"],
-  },
-  {
-    id: "3",
-    title: "The Bell Jar",
-    year: 2020,
-    type: "BOOK",
-    averageRating: 9,
-    ratingCount: 3,
-    tags: ["Psychological", "Classic"],
-  },
-];
 
 export default function AddContentPage() {
   const router = useRouter();
@@ -43,6 +12,9 @@ export default function AddContentPage() {
 
   const [query, setQuery] = useState("");
   const trimmed = query.trim();
+
+  const [results, setResults] = useState<ItemCardItem[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
   const [formTitle, setFormTitle] = useState("");
@@ -56,14 +28,48 @@ export default function AddContentPage() {
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [imageFileName, setImageFileName] = useState<string | null>(null);
 
-  const results = useMemo(() => {
-    if (!trimmed) return [];
-    const q = trimmed.toLowerCase();
-    return mockItems.filter((item) => item.title.toLowerCase().includes(q));
-  }, [trimmed]);
+  useEffect(() => {
+    if (!trimmed || offline) {
+      setResults([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setSearchLoading(true);
+      fetch(`/api/items?q=${encodeURIComponent(trimmed)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!cancelled && Array.isArray(data)) {
+            setResults(
+              data.map((item: { id: string; title: string; year: number; type: string; imageUrl?: string | null; averageRating?: number; ratingCount?: number; tags?: string[] }) => ({
+                id: item.id,
+                title: item.title,
+                year: item.year ?? 0,
+                type: item.type as ItemType,
+                averageRating: item.averageRating ?? 0,
+                ratingCount: item.ratingCount ?? 0,
+                tags: item.tags ?? [],
+                imageUrl: item.imageUrl ?? null,
+              }))
+            );
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearchLoading(false);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [trimmed, offline]);
 
   const showEmptyState = !trimmed && !showCreate;
-  const showNoResults = !!trimmed && results.length === 0 && !showCreate;
+  const showNoResults = !!trimmed && !searchLoading && results.length === 0 && !showCreate;
+  const showSearchLoading = !!trimmed && searchLoading;
 
   function handleAddClick() {
     setShowCreate(true);
@@ -158,7 +164,7 @@ export default function AddContentPage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-8">
         <header className="mb-6 sm:mb-8">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
             Add Content
@@ -221,7 +227,13 @@ export default function AddContentPage() {
             </div>
           )}
 
-          {!showEmptyState && results.length > 0 && (
+          {showSearchLoading && (
+            <div className="py-8 text-center text-sm text-zinc-500">
+              Searching...
+            </div>
+          )}
+
+          {!showEmptyState && !searchLoading && results.length > 0 && (
             <ul className="divide-y divide-zinc-100 rounded-2xl border border-zinc-100 bg-white">
               {results.map((item) => (
                 <li key={item.id}>
