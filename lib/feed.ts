@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { HomeReview } from "@/app/HomePageClient";
 import type { ItemStatus } from "@/app/api/items/status/route";
@@ -33,10 +34,9 @@ type FeedRow = {
   my_review_id: string | null;
 };
 
-export async function getHomeFeed(
+async function getHomeFeedUncached(
   userId: string
 ): Promise<{ reviews: HomeReview[]; initialStatus: Record<string, ItemStatus> }> {
-  // Single query with LEFT JOINs for status (avoids correlated subqueries)
   const rows = await prisma.$queryRaw<FeedRow[]>`
     WITH following AS (
       SELECT "followingId" FROM "Follow" WHERE "followerId" = ${userId}
@@ -101,4 +101,15 @@ export async function getHomeFeed(
   }
 
   return { reviews, initialStatus };
+}
+
+/** Cached for 30s to reduce DB load and improve repeat-visit speed. */
+export async function getHomeFeed(
+  userId: string
+): Promise<{ reviews: HomeReview[]; initialStatus: Record<string, ItemStatus> }> {
+  return unstable_cache(
+    () => getHomeFeedUncached(userId),
+    [`feed`, userId],
+    { revalidate: 30, tags: [`feed-${userId}`] }
+  )();
 }

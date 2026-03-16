@@ -122,5 +122,6 @@ model Review {
 
   @@unique([userId, itemId])
   @@index([userId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }
 
