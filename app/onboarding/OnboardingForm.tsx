@@ -29,7 +29,7 @@ export function OnboardingForm() {
 
     // In offline dev mode, just skip the API and continue.
     if (offline) {
-      router.push("/");
+      router.push("/search");
       return;
     }
 
@@ -46,7 +46,7 @@ export function OnboardingForm() {
       return;
     }
 
-    router.push("/");
+    router.push("/search");
   }
 
   return (

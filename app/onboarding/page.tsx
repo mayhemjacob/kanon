@@ -27,9 +27,9 @@ export default async function OnboardingPage() {
     select: { handle: true },
   });
 
-  // User already has a handle — skip onboarding
+  // User already has a handle — skip onboarding, go to Discover
   if (dbUser?.handle?.trim()) {
-    redirect("/");
+    redirect("/search");
   }
 
   return <OnboardingForm />;
