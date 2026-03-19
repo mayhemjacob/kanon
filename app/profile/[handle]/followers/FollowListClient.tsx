@@ -76,7 +76,7 @@ export function FollowListClient({
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-8">
         <div className="mb-6 flex items-center gap-3">
           <Link
             href={backHref}

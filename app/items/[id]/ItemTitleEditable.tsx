@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -23,14 +24,19 @@ export function ItemTitleEditable({
   canEdit = true,
 }: ItemTitleEditableProps) {
   const router = useRouter();
+  const [displayTitle, setDisplayTitle] = useState(title);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(title);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setDisplayTitle(title);
+  }, [title]);
+
   function startEdit() {
     setEditing(true);
-    setValue(title);
+    setValue(displayTitle);
     setError(null);
   }
 
@@ -47,6 +53,7 @@ export function ItemTitleEditable({
         body: JSON.stringify({ title: trimmed }),
       });
       if (res.ok) {
+        setDisplayTitle(trimmed);
         setEditing(false);
         router.refresh();
       } else {
@@ -62,7 +69,7 @@ export function ItemTitleEditable({
 
   function cancel() {
     setEditing(false);
-    setValue(title);
+    setValue(displayTitle);
     setError(null);
   }
 
@@ -85,7 +92,7 @@ export function ItemTitleEditable({
               disabled={saving || !value.trim()}
               className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
             >
-              Save
+              {saving ? "Saving…" : "Save"}
             </button>
             <button
               type="button"
@@ -104,7 +111,7 @@ export function ItemTitleEditable({
   return (
     <div className="flex min-w-0 items-start gap-2">
       <h1 className="min-w-0 break-words text-2xl font-semibold tracking-tight sm:text-3xl">
-        {title}
+        {displayTitle}
       </h1>
       {canEdit ? (
         <button

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { formatTimeAgo } from "@/lib/date";
 
 type ProfileState = {
   handle: string | null;
@@ -52,9 +53,11 @@ export default function ProfilePage() {
     following: null,
   });
   const [cards, setCards] = useState<ReviewCard[]>([]);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(true);
 
-  const loadProfile = useCallback(async () => {
+  const loadProfile = useCallback(async (showLoading = true) => {
+    if (showLoading) setProfileLoading(true);
     try {
       const res = await fetch("/api/me", { cache: "no-store" });
       if (!res.ok) return;
@@ -68,6 +71,8 @@ export default function ProfilePage() {
       });
     } catch {
       // ignore, keep defaults
+    } finally {
+      if (showLoading) setProfileLoading(false);
     }
   }, []);
 
@@ -76,7 +81,7 @@ export default function ProfilePage() {
   }, [loadProfile]);
 
   useEffect(() => {
-    const onFocus = () => loadProfile();
+    const onFocus = () => loadProfile(false);
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [loadProfile]);
@@ -140,17 +145,18 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-3xl px-6 py-10 space-y-6">
-        <header className="space-y-4">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 text-center space-y-2">
+      <div className="mx-auto max-w-3xl px-6 py-10 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] space-y-6 md:pb-8">
+        <header className="relative space-y-4">
+          <div className="text-center space-y-2">
               <button
                 type="button"
                 onClick={() => router.push("/profile/edit-photo")}
                 className="mx-auto block h-20 w-20 overflow-hidden rounded-full bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-black/10"
                 aria-label="Edit photo"
               >
-                {profile.image && !imageError ? (
+                {profileLoading ? (
+                  <div className="h-full w-full animate-pulse bg-zinc-300" />
+                ) : profile.image && !imageError ? (
                   <img
                     src={profile.image}
                     alt=""
@@ -159,53 +165,66 @@ export default function ProfilePage() {
                   />
                 ) : null}
               </button>
-              {displayHandle && (
-                <div className="text-sm font-semibold">{displayHandle}</div>
+              {profileLoading ? (
+                <>
+                  <div className="mx-auto h-4 w-24 rounded bg-zinc-200 animate-pulse" />
+                  <div className="mx-auto h-4 w-48 rounded bg-zinc-100 animate-pulse" />
+                  <div className="mt-3 flex justify-center gap-8">
+                    <div className="h-4 w-8 rounded bg-zinc-100 animate-pulse" />
+                    <div className="h-4 w-8 rounded bg-zinc-100 animate-pulse" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {displayHandle && (
+                    <div className="text-sm font-semibold">{displayHandle}</div>
+                  )}
+                  <p className="text-sm text-zinc-600">
+                    {profile.bio || "Add a short bio so others can get to know you."}
+                  </p>
+                  <div className="mt-3 flex items-center justify-center gap-8 text-sm">
+                    {profile.handle ? (
+                      <>
+                        <Link
+                          href={`/profile/${profile.handle}/followers`}
+                          className="hover:opacity-80 transition-opacity"
+                        >
+                          <div className="font-semibold">
+                            {profile.followers ?? 0}
+                          </div>
+                          <div className="text-zinc-500 text-xs">Followers</div>
+                        </Link>
+                        <Link
+                          href={`/profile/${profile.handle}/following`}
+                          className="hover:opacity-80 transition-opacity"
+                        >
+                          <div className="font-semibold">
+                            {profile.following ?? 0}
+                          </div>
+                          <div className="text-zinc-500 text-xs">Following</div>
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <div className="font-semibold">
+                            {profile.followers ?? 0}
+                          </div>
+                          <div className="text-zinc-500 text-xs">Followers</div>
+                        </div>
+                        <div>
+                          <div className="font-semibold">
+                            {profile.following ?? 0}
+                          </div>
+                          <div className="text-zinc-500 text-xs">Following</div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
               )}
-              <p className="text-sm text-zinc-600">
-                {profile.bio || "Add a short bio so others can get to know you."}
-              </p>
-              <div className="mt-3 flex items-center justify-center gap-8 text-sm">
-                {profile.handle ? (
-                  <>
-                    <Link
-                      href={`/profile/${profile.handle}/followers`}
-                      className="hover:opacity-80 transition-opacity"
-                    >
-                      <div className="font-semibold">
-                        {profile.followers ?? 0}
-                      </div>
-                      <div className="text-zinc-500 text-xs">Followers</div>
-                    </Link>
-                    <Link
-                      href={`/profile/${profile.handle}/following`}
-                      className="hover:opacity-80 transition-opacity"
-                    >
-                      <div className="font-semibold">
-                        {profile.following ?? 0}
-                      </div>
-                      <div className="text-zinc-500 text-xs">Following</div>
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <div className="font-semibold">
-                        {profile.followers ?? 0}
-                      </div>
-                      <div className="text-zinc-500 text-xs">Followers</div>
-                    </div>
-                    <div>
-                      <div className="font-semibold">
-                        {profile.following ?? 0}
-                      </div>
-                      <div className="text-zinc-500 text-xs">Following</div>
-                    </div>
-                  </>
-                )}
-              </div>
             </div>
-            <div className="relative ml-4">
+            <div className="absolute right-0 top-0">
               <button
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
@@ -269,7 +288,6 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-          </div>
         </header>
 
         <section className="space-y-3 pt-4">
@@ -407,9 +425,9 @@ export default function ProfilePage() {
                   <Link
                     key={card.id}
                     href={`/items/${card.itemId}/reviews/${card.reviewId}`}
-                    className="block overflow-hidden rounded-2xl bg-zinc-900 text-white hover:bg-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2"
+                    className="relative block overflow-hidden rounded-2xl bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2"
                   >
-                    <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-800">
+                    <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-300">
                       {card.imageUrl ? (
                         <img
                           src={card.imageUrl}
@@ -419,16 +437,21 @@ export default function ProfilePage() {
                         />
                       ) : null}
                       <div className="absolute left-2 top-2 flex items-center justify-between w-[calc(100%-1rem)]">
-                        <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium">
+                        <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
                           {card.type === "SHOW" ? "SERIES" : card.type}
                         </span>
-                        <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium">
+                        <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
                           {Number.isInteger(card.rating) ? card.rating : card.rating.toFixed(1)}
                         </span>
                       </div>
                     </div>
-                    <div className="p-2">
-                      <div className="text-sm font-medium line-clamp-2">{card.title}</div>
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12 pb-3 px-3">
+                      <span className="line-clamp-2 text-sm font-medium text-white">
+                        {card.title}
+                      </span>
+                      <div className="mt-0.5 text-[11px] text-white/80">
+                        {formatTimeAgo(card.createdAt)}
+                      </div>
                     </div>
                   </Link>
                 ))}

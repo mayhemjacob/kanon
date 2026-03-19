@@ -3,7 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { formatReviewDate } from "@/lib/date";
 import { ReviewEditable } from "./ReviewEditable";
+import { ReviewPageActions } from "./ReviewPageActions";
 
 function formatTimeAgo(date: Date): string {
   const now = new Date();
@@ -184,28 +186,29 @@ export default async function ItemReviewPage({
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
-        {/* Header: back (to item reviews list) + item summary + actions */}
-        <div className="mb-8 flex items-start justify-between gap-4">
-          <div className="flex gap-4">
-            <Link
-              href={`/items/${item.id}/reviews`}
-              className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-              aria-label="Back to reviews"
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-8">
+        {/* Header: back arrow, then item summary + actions */}
+        <div className="mb-4">
+          <Link
+            href={`/items/${item.id}/reviews`}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+            aria-label="Back to reviews"
+          >
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <div className="flex gap-4">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+          </Link>
+
+          <div className="mt-4 flex items-start justify-between gap-4">
+            <div className="flex min-w-0 flex-1 gap-4">
               <div className="h-24 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
                 {item.imageUrl ? (
                   <img
@@ -236,55 +239,17 @@ export default async function ItemReviewPage({
                 </Link>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href={myReviewId ? `/items/${item.id}/reviews/${myReviewId}` : `/items/${item.id}/review`}
-              className={`flex h-9 w-9 items-center justify-center rounded-full border text-xs ${
-                reviewedByMe
-                  ? "border-zinc-900 bg-zinc-900 text-white"
-                  : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
-              }`}
-              aria-label="Rate this item"
-            >
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill={reviewedByMe ? "currentColor" : "none"}
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 3.5 9.6 9H4.5l4.1 3.1L6.8 18.5 12 15.3l5.2 3.2-1.8-6.4 4.1-3.1h-5.1L12 3.5z" />
-              </svg>
-            </Link>
-            <Link
-              href={`/items/${item.id}`}
-              className={`flex h-9 w-9 items-center justify-center rounded-full border text-xs ${
-                saved
-                  ? "border-zinc-900 bg-zinc-900 text-white"
-                  : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
-              }`}
-              aria-label="Save item (from item page)"
-            >
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill={saved ? "currentColor" : "none"}
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" />
-              </svg>
-            </Link>
+            <ReviewPageActions
+              itemId={item.id}
+              saved={saved}
+              reviewedByMe={reviewedByMe}
+              myReviewId={myReviewId}
+            />
           </div>
         </div>
 
         {/* Review by (user) */}
-        <section className="space-y-4">
+        <section className="space-y-2">
           <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
             Review by
           </div>
@@ -333,7 +298,7 @@ export default async function ItemReviewPage({
             />
           ) : (
             <>
-              <div className="space-y-2 pt-4">
+              <div className="space-y-2 pt-2">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                   Rating
                 </div>
@@ -344,7 +309,7 @@ export default async function ItemReviewPage({
                 </div>
               </div>
 
-              <div className="space-y-2 pt-4">
+              <div className="space-y-2 pt-2">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                   Reflection
                 </div>
@@ -356,6 +321,17 @@ export default async function ItemReviewPage({
               </div>
             </>
           )}
+
+          <div className="space-y-2 pt-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+              Reviewed on
+            </div>
+            <div className="rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-4">
+              <p className="text-sm text-zinc-800">
+                {formatReviewDate(review.createdAt)}
+              </p>
+            </div>
+          </div>
         </section>
       </div>
     </main>

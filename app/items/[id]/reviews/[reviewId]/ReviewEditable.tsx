@@ -105,7 +105,7 @@ export function ReviewEditable({
   }
 
   return (
-    <div className="space-y-4 pt-4">
+    <div className="space-y-2 pt-2">
       {/* Rating */}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
@@ -189,7 +189,7 @@ export function ReviewEditable({
       </div>
 
       {/* Reflection */}
-      <div className="space-y-2 pt-4">
+      <div className="space-y-2 pt-2">
         <div className="flex items-center justify-between gap-2">
           <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
             Reflection

@@ -544,8 +544,8 @@ export function HomePageClient({
                               className="h-full w-full object-cover"
                             />
                           ) : null}
-                          <div className="absolute left-1.5 top-1.5">
-                            <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
+                          <div className="absolute left-[3px] top-[1px]">
+                            <span className="rounded-full bg-zinc-900/90 px-1.5 py-0.5 text-[9px] font-medium text-white">
                               {review.itemType === "SHOW" ? "SERIES" : review.itemType}
                             </span>
                           </div>

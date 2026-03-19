@@ -155,7 +155,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-white">
-      <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto w-full max-w-4xl px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-8">
         {/* Top bar */}
         <div className="mb-6 flex items-center gap-3">
           <Link

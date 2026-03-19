@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { formatTimeAgo } from "@/lib/date";
 
 type SortOption = "reviewDate" | "rating" | "publicationYear";
 
@@ -89,7 +90,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-3xl px-6 py-10 space-y-6">
+      <div className="mx-auto max-w-3xl px-6 py-10 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] space-y-6 md:pb-8">
         <div className="-mt-2 -mx-2 mb-2">
           <button
             type="button"
@@ -261,9 +262,9 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
                 <Link
                   key={card.id}
                   href={`/items/${card.itemId}/reviews/${card.reviewId}`}
-                  className="block overflow-hidden rounded-2xl bg-zinc-900 text-white hover:bg-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2"
+                  className="relative block overflow-hidden rounded-2xl bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2"
                 >
-                  <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-800">
+                  <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-300">
                     {card.imageUrl ? (
                       <img
                         src={card.imageUrl}
@@ -273,16 +274,21 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
                       />
                     ) : null}
                     <div className="absolute left-2 top-2 flex items-center justify-between w-[calc(100%-1rem)]">
-                      <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium">
+                      <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
                         {card.type === "SHOW" ? "SERIES" : card.type}
                       </span>
-                      <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium">
+                      <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
                         {Number.isInteger(card.rating) ? card.rating : card.rating.toFixed(1)}
                       </span>
                     </div>
                   </div>
-                  <div className="p-2">
-                    <div className="text-sm font-medium line-clamp-2">{card.title}</div>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12 pb-3 px-3">
+                    <span className="line-clamp-2 text-sm font-medium text-white">
+                      {card.title}
+                    </span>
+                    <div className="mt-0.5 text-[11px] text-white/80">
+                      {formatTimeAgo(card.createdAt)}
+                    </div>
                   </div>
                 </Link>
               ))

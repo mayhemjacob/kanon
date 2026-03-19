@@ -23,9 +23,32 @@ function typeLabel(type: ItemType): string {
 export default function SavedPage() {
   const [activeType, setActiveType] = useState<TypeFilter>("All");
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unsavingId, setUnsavingId] = useState<string | null>(null);
+
+  async function handleUnsave(e: React.MouseEvent, itemId: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (unsavingId) return;
+    const item = savedItems.find((i) => i.itemId === itemId);
+    if (!item) return;
+    setUnsavingId(itemId);
+    setSavedItems((prev) => prev.filter((i) => i.itemId !== itemId));
+    try {
+      const res = await fetch(`/api/items/${itemId}/save`, { method: "POST" });
+      if (!res.ok) {
+        setSavedItems((prev) => [...prev, item]);
+      }
+    } catch {
+      setSavedItems((prev) => [...prev, item]);
+    } finally {
+      setUnsavingId(null);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     (async () => {
       try {
         const res = await fetch("/api/saved", { cache: "no-store" });
@@ -48,6 +71,8 @@ export default function SavedPage() {
         }
       } catch {
         setSavedItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
@@ -65,7 +90,7 @@ export default function SavedPage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8 pb-20">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-8 md:pb-8">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
           Saved
         </h1>
@@ -90,7 +115,20 @@ export default function SavedPage() {
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4">
-          {filtered.map((item) => (
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="relative overflow-hidden rounded-2xl bg-zinc-200"
+                aria-hidden
+              >
+                <div className="aspect-[3/4] w-full animate-pulse bg-zinc-300" />
+                <div className="absolute left-2 top-2 h-5 w-12 rounded-full bg-zinc-400/80" />
+                <div className="absolute inset-x-3 bottom-3 h-4 w-24 animate-pulse rounded bg-zinc-400/80" />
+              </div>
+            ))
+          ) : (
+          filtered.map((item) => (
             <Link
               key={item.itemId}
               href={`/items/${item.itemId}`}
@@ -109,16 +147,36 @@ export default function SavedPage() {
               <span className="absolute left-2 top-2 rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
                 {typeLabel(item.type)}
               </span>
+              <button
+                type="button"
+                onClick={(e) => handleUnsave(e, item.itemId)}
+                disabled={unsavingId === item.itemId}
+                className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900/90 text-white hover:bg-zinc-900 disabled:opacity-60"
+                aria-label="Unsave"
+              >
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" />
+                </svg>
+              </button>
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12 pb-3 px-3">
                 <span className="line-clamp-2 text-sm font-medium text-white">
                   {item.title}
                 </span>
               </div>
             </Link>
-          ))}
+          ))
+          )}
         </div>
 
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <p className="mt-8 text-center text-sm text-zinc-500">
             No saved items in this category.
           </p>
