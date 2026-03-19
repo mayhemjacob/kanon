@@ -12,7 +12,7 @@ export const tabs = [
 ];
 
 function TabIcon({ label, active }: { label: string; active: boolean }) {
-  const base = "h-[22px] w-[22px]";
+  const base = "h-[24px] w-[24px]";
 
   switch (label) {
     case "Home":
@@ -47,9 +47,9 @@ function TabIcon({ label, active }: { label: string; active: boolean }) {
       );
     case "Add":
       return (
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-zinc-900 text-white">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-white">
           <svg
-            className="h-5 w-5"
+            className="h-6 w-6"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -99,7 +99,7 @@ export function TabBar() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-200 bg-white/95 backdrop-blur md:hidden pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="mx-auto flex max-w-md items-center justify-between px-6 pt-3 pb-5">
+      <div className="mx-auto flex max-w-md items-center justify-between px-6 pt-2 pb-5">
         {tabs.map((tab) => {
           const active =
             pathname === tab.href ||
