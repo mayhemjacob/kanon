@@ -414,10 +414,12 @@ export default function AddContentPage() {
                         <circle cx="9" cy="9" r="1.1" />
                       </svg>
                       <div className="text-xs font-medium text-zinc-700">
-                        Upload Image
+                        <span className="md:hidden">Take a picture or upload media</span>
+                        <span className="hidden md:inline">Upload Image</span>
                       </div>
                       <div className="text-[11px] text-zinc-500">
-                        Click to browse or drag and drop
+                        <span className="md:hidden">Tap to take a photo or choose from gallery</span>
+                        <span className="hidden md:inline">Click to browse or drag and drop</span>
                       </div>
                       <input
                         type="file"
