@@ -13,3 +13,10 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
     Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
+
+/* Prevent iOS Safari zoom on input focus (requires 16px+ to avoid auto-zoom) */
+input,
+textarea,
+select {
+  font-size: max(16px, 1em);
+}
