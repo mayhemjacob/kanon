@@ -431,6 +431,7 @@ export function HomePageClient({
                       <img
                         src={review.userImage}
                         alt=""
+                        loading="lazy"
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -539,6 +540,7 @@ export function HomePageClient({
                             <img
                               src={review.itemImageUrl}
                               alt=""
+                              loading="lazy"
                               className="h-full w-full object-cover"
                             />
                           ) : null}

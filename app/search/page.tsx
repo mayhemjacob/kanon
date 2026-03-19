@@ -41,9 +41,8 @@ export default async function DiscoverPage({
     );
   }
 
-  const session = await getServerSession(authOptions);
-
-  const [itemsResult, peopleRows] = await Promise.all([
+  const [session, itemsResult, peopleRows] = await Promise.all([
+    getServerSession(authOptions),
     prisma.item.findMany({
       take: 20,
       orderBy: { createdAt: "desc" },

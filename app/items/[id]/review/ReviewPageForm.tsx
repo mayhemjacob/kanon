@@ -86,6 +86,7 @@ export function ReviewPageForm({ item }: { item: ReviewItemInfo }) {
               <img
                 src={item.imageUrl}
                 alt=""
+                loading="lazy"
                 className="h-full w-full object-cover"
               />
             ) : null}

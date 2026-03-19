@@ -211,6 +211,7 @@ export default async function ItemReviewPage({
                   <img
                     src={item.imageUrl}
                     alt=""
+                    loading="lazy"
                     className="h-full w-full object-cover"
                   />
                 ) : null}
@@ -301,6 +302,7 @@ export default async function ItemReviewPage({
                   <img
                     src={user.image}
                     alt=""
+                    loading="lazy"
                     className="h-full w-full object-cover"
                   />
                 ) : (

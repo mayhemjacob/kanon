@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ItemCard, type ItemCardItem, type ItemType } from "@/app/components/ItemCard";
 import { TAGS } from "@/lib/tags";
+import { resizeDataUrl } from "@/lib/resize-image";
 
 export default function AddContentPage() {
   const router = useRouter();
@@ -134,6 +135,10 @@ export default function AddContentPage() {
     setSubmitError(null);
 
     try {
+      let imageUrl = coverImageUrl ?? null;
+      if (imageUrl?.startsWith("data:") && imageUrl.length > 100_000) {
+        imageUrl = await resizeDataUrl(imageUrl, { maxPx: 512, quality: 0.85 });
+      }
       const res = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -141,7 +146,7 @@ export default function AddContentPage() {
             title: formTitle,
             type: formType,
             year: formYear ? Number(formYear) : null,
-            imageUrl: coverImageUrl ?? null,
+            imageUrl,
             director: formCreator.trim() || null,
             description: formDescription.trim() || null,
             tags: selectedTags,

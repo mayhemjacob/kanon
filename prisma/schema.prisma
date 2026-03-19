@@ -95,6 +95,8 @@ model Item {
 
   reviews    Review[]
   savedBy    SavedItem[]
+
+  @@index([createdAt(sort: Desc)])
 }
 
 model SavedItem {

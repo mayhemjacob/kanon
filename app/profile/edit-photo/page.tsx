@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { resizeDataUrl } from "@/lib/resize-image";
 
 export default function EditPhotoPage() {
   const router = useRouter();
@@ -45,44 +46,6 @@ export default function EditPhotoPage() {
 
   const previewImage = uploadedDataUrl || urlInput || currentImage;
 
-  const MAX_PREVIEW_PX = 512;
-  const JPEG_QUALITY = 0.85;
-
-  function resizeDataUrl(dataUrl: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let { width, height } = img;
-        if (width > MAX_PREVIEW_PX || height > MAX_PREVIEW_PX) {
-          if (width > height) {
-            height = Math.round((height / width) * MAX_PREVIEW_PX);
-            width = MAX_PREVIEW_PX;
-          } else {
-            width = Math.round((width / height) * MAX_PREVIEW_PX);
-            height = MAX_PREVIEW_PX;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          resolve(dataUrl);
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        try {
-          resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
-        } catch {
-          resolve(dataUrl);
-        }
-      };
-      img.onerror = () => reject(new Error("Image load failed"));
-      img.src = dataUrl;
-    });
-  }
-
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -108,7 +71,7 @@ export default function EditPhotoPage() {
     setError(null);
     try {
       if (nextImage?.startsWith("data:") && nextImage.length > 100_000) {
-        nextImage = await resizeDataUrl(nextImage);
+        nextImage = await resizeDataUrl(nextImage, { maxPx: 512, quality: 0.85 });
       }
       const res = await fetch("/api/me", {
         method: "PATCH",

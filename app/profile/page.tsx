@@ -414,6 +414,7 @@ export default function ProfilePage() {
                         <img
                           src={card.imageUrl}
                           alt=""
+                          loading="lazy"
                           className="h-full w-full object-cover"
                         />
                       ) : null}

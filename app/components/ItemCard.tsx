@@ -75,6 +75,7 @@ export function ItemCard({
             <img
               src={item.imageUrl}
               alt=""
+              loading="lazy"
               className="h-full w-full object-cover"
             />
           ) : null}

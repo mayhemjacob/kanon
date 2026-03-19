@@ -124,6 +124,7 @@ export function FollowListClient({
                       <img
                         src={user.image}
                         alt=""
+                        loading="lazy"
                         className="h-full w-full object-cover"
                       />
                     ) : (

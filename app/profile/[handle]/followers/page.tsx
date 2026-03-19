@@ -17,12 +17,13 @@ export default async function FollowersPage({
   const handleSlug = normalizeHandle(handleParam ?? "");
   if (!handleSlug) notFound();
 
-  const session = await getServerSession(authOptions);
-
-  const targetUser = await prisma.user.findUnique({
-    where: { handle: handleSlug },
-    select: { id: true },
-  });
+  const [session, targetUser] = await Promise.all([
+    getServerSession(authOptions),
+    prisma.user.findUnique({
+      where: { handle: handleSlug },
+      select: { id: true },
+    }),
+  ]);
 
   if (!targetUser) {
     notFound();
@@ -39,26 +40,35 @@ export default async function FollowersPage({
   });
 
   let followingByMeMap: Record<string, boolean> = {};
+  let currentUserHandle: string | null = null;
+
   if (session?.user?.id) {
     const handles = followers
       .map((f) => f.follower.handle)
       .filter((h): h is string => !!h);
-    if (handles.length > 0) {
-      const follows = await prisma.follow.findMany({
-        where: {
-          followerId: session.user.id,
-          following: { handle: { in: handles } },
-        },
-        select: { following: { select: { handle: true } } },
-      });
-      followingByMeMap = follows.reduce(
-        (acc, f) => {
-          if (f.following.handle) acc[f.following.handle] = true;
-          return acc;
-        },
-        {} as Record<string, boolean>
-      );
-    }
+    const [follows, currentUser] = await Promise.all([
+      handles.length > 0
+        ? prisma.follow.findMany({
+            where: {
+              followerId: session.user.id,
+              following: { handle: { in: handles } },
+            },
+            select: { following: { select: { handle: true } } },
+          })
+        : Promise.resolve([]),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { handle: true },
+      }),
+    ]);
+    followingByMeMap = follows.reduce(
+      (acc, f) => {
+        if (f.following.handle) acc[f.following.handle] = true;
+        return acc;
+      },
+      {} as Record<string, boolean>
+    );
+    currentUserHandle = currentUser?.handle ?? null;
   }
 
   const users = followers
@@ -69,16 +79,6 @@ export default async function FollowersPage({
       image: f.follower.image,
       followingByMe: followingByMeMap[f.follower.handle!] ?? false,
     }));
-
-  const currentUserHandle =
-    session?.user?.id
-      ? (
-          await prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: { handle: true },
-          })
-        )?.handle ?? null
-      : null;
 
   // Back to /profile (has tab bar) when viewing own profile, else /profile/[handle]
   const isOwnProfile =

@@ -47,7 +47,11 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
   }
 
   async function onSavePhoto() {
-    const nextImage = uploadedDataUrl || (urlInput.trim() || null);
+    let nextImage = uploadedDataUrl || (urlInput.trim() || null);
+    if (nextImage?.startsWith("data:") && nextImage.length > 100_000) {
+      const { resizeDataUrl } = await import("@/lib/resize-image");
+      nextImage = await resizeDataUrl(nextImage, { maxPx: 512, quality: 0.85 });
+    }
     setSaving(true);
     setError(null);
     try {

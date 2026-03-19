@@ -99,7 +99,7 @@ export function TabBar() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-200 bg-white/95 backdrop-blur md:hidden pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="mx-auto flex max-w-md items-center justify-between px-6 pt-2 pb-4">
+      <div className="mx-auto flex max-w-md items-center justify-between px-6 pt-2 pb-3">
         {tabs.map((tab) => {
           const active =
             pathname === tab.href ||
