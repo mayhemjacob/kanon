@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TAGS } from "@/lib/tags";
 
 type ItemType = "FILM" | "SHOW" | "BOOK";
@@ -37,26 +37,39 @@ export function ItemDetailsEditable({
 }: ItemDetailsEditableProps) {
   const router = useRouter();
   const [editSection, setEditSection] = useState<"director" | "description" | "tags" | null>(null);
+  /** Shown when not editing — updated on save so router.refresh() flicker doesn’t blank fields */
+  const [savedDirector, setSavedDirector] = useState(() => director ?? "");
+  const [savedDescription, setSavedDescription] = useState(() => description ?? "");
+  const [savedTags, setSavedTags] = useState<string[]>(() => [...tags]);
   const [dirValue, setDirValue] = useState(director ?? "");
   const [descValue, setDescValue] = useState(description ?? "");
   const [selectedTags, setSelectedTags] = useState<string[]>(() => [...tags]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setSavedDirector(director ?? "");
+    setSavedDescription(description ?? "");
+    setSavedTags([...tags]);
+    setDirValue(director ?? "");
+    setDescValue(description ?? "");
+    setSelectedTags([...tags]);
+  }, [itemId]);
+
   function openDirectorEdit() {
     setEditSection("director");
     setSaveError(null);
-    setDirValue(director ?? "");
+    setDirValue(savedDirector);
   }
   function openDescriptionEdit() {
     setEditSection("description");
     setSaveError(null);
-    setDescValue(description ?? "");
+    setDescValue(savedDescription);
   }
   function openTagsEdit() {
     setEditSection("tags");
     setSaveError(null);
-    setSelectedTags([...tags]);
+    setSelectedTags([...savedTags]);
   }
 
   function toggleTag(tag: string) {
@@ -75,6 +88,7 @@ export function ItemDetailsEditable({
         body: JSON.stringify({ director: dirValue.trim() || null }),
       });
       if (res.ok) {
+        setSavedDirector(dirValue.trim());
         setEditSection(null);
         router.refresh();
       } else {
@@ -98,6 +112,7 @@ export function ItemDetailsEditable({
         body: JSON.stringify({ description: descValue.trim() || null }),
       });
       if (res.ok) {
+        setSavedDescription(descValue.trim());
         setEditSection(null);
         router.refresh();
       } else {
@@ -121,6 +136,7 @@ export function ItemDetailsEditable({
         body: JSON.stringify({ tags: selectedTags }),
       });
       if (res.ok) {
+        setSavedTags([...selectedTags]);
         setEditSection(null);
         router.refresh();
       } else {
@@ -176,7 +192,7 @@ export function ItemDetailsEditable({
               type="button"
               onClick={() => {
                 setEditSection(null);
-                setDirValue(director ?? "");
+                setDirValue(savedDirector);
               }}
               className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
             >
@@ -185,7 +201,7 @@ export function ItemDetailsEditable({
           </div>
         ) : (
           <p className="mt-1 text-sm text-zinc-600">
-            {director || "—"}
+            {savedDirector || "—"}
           </p>
         )}
       </div>
@@ -231,7 +247,7 @@ export function ItemDetailsEditable({
                 type="button"
                 onClick={() => {
                   setEditSection(null);
-                  setDescValue(description ?? "");
+                  setDescValue(savedDescription);
                 }}
                 className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
               >
@@ -241,7 +257,7 @@ export function ItemDetailsEditable({
           </div>
         ) : (
           <p className="mt-1 text-sm text-zinc-600 whitespace-pre-line">
-            {description || "—"}
+            {savedDescription || "—"}
           </p>
         )}
       </div>
@@ -299,7 +315,7 @@ export function ItemDetailsEditable({
                 type="button"
                 onClick={() => {
                   setEditSection(null);
-                  setSelectedTags([...tags]);
+                  setSelectedTags([...savedTags]);
                 }}
                 className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
               >
@@ -309,8 +325,8 @@ export function ItemDetailsEditable({
           </div>
         ) : (
           <div className="mt-2 flex flex-wrap gap-2">
-            {tags.length > 0 ? (
-              tags.map((tag) => (
+            {savedTags.length > 0 ? (
+              savedTags.map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700"

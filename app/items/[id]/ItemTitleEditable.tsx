@@ -30,9 +30,13 @@ export function ItemTitleEditable({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Only reset from server when navigating to another item — not on router.refresh()
+  // for the same item (props can briefly be empty and would blank the title).
   useEffect(() => {
     setDisplayTitle(title);
-  }, [title]);
+    setValue(title);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- title intentionally omitted
+  }, [itemId]);
 
   function startEdit() {
     setEditing(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type ItemPosterProps = {
@@ -19,6 +19,13 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageUrl(initialImageUrl);
+    setImageError(false);
+    setUploadedDataUrl(null);
+    setUrlInput(initialImageUrl ?? "");
+  }, [itemId]);
 
   const previewImage = uploadedDataUrl || (urlInput.trim() || null) || imageUrl;
 
