@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { formatTimeAgo } from "@/lib/date";
@@ -55,6 +55,7 @@ export default function ProfilePage() {
   const [cards, setCards] = useState<ReviewCard[]>([]);
   const [profileLoading, setProfileLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const loadProfile = useCallback(async (showLoading = true) => {
     if (showLoading) setProfileLoading(true);
@@ -108,6 +109,31 @@ export default function ProfilePage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      const raw = e.target;
+      const el =
+        raw instanceof Element ? raw : (raw as Node).parentElement;
+      if (!el) {
+        setMenuOpen(false);
+        return;
+      }
+      if (profileMenuRef.current?.contains(el)) return;
+      if (el.closest("[data-profile-keep-menu-open]")) return;
+      setMenuOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   const toggleRatingBand = useCallback((band: RatingFilterOption) => {
     setSelectedRatingBands((prev) => {
@@ -224,7 +250,7 @@ export default function ProfilePage() {
                 </>
               )}
             </div>
-            <div className="absolute right-0 top-0">
+            <div ref={profileMenuRef} className="absolute right-0 top-0">
               <button
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
@@ -308,7 +334,10 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-2 text-xs">
+          <div
+            className="flex flex-wrap gap-2 text-xs"
+            data-profile-keep-menu-open
+          >
               {["All", "Films", "Series", "Books"].map((label) => (
               <button
                 key={label}
@@ -385,7 +414,10 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div
+            className="flex flex-wrap items-center gap-2 text-xs"
+            data-profile-keep-menu-open
+          >
             <span className="text-zinc-500 mr-1">Rating</span>
             {ratingOptions.map((label) => {
               const isActive = selectedRatingBands.has(label);
@@ -407,7 +439,10 @@ export default function ProfilePage() {
           </div>
 
           {reviewsLoading ? (
-            <div className="grid grid-cols-2 gap-3 pt-4 sm:gap-4">
+            <div
+              className="grid grid-cols-2 gap-3 pt-4 sm:gap-4"
+              data-profile-keep-menu-open
+            >
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="overflow-hidden rounded-2xl bg-zinc-100 animate-pulse">
                   <div className="aspect-[3/4] w-full bg-zinc-200" />
@@ -420,7 +455,10 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 pt-4 sm:gap-4">
+              <div
+                className="grid grid-cols-2 gap-3 pt-4 sm:gap-4"
+                data-profile-keep-menu-open
+              >
                 {filteredCards.map((card) => (
                   <Link
                     key={card.id}
