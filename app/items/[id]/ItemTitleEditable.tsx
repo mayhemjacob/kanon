@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 type ItemTitleEditableProps = {
   itemId: string;
@@ -29,14 +28,29 @@ export function ItemTitleEditable({
   const [value, setValue] = useState(title);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const saveFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Only reset from server when navigating to another item — not on router.refresh()
-  // for the same item (props can briefly be empty and would blank the title).
+  // Full reset only when opening a different item (omit `title` from deps so refresh
+  // can’t push an empty title and wipe what the user just saved).
   useEffect(() => {
     setDisplayTitle(title);
     setValue(title);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- title intentionally omitted
+    setSavedFlash(false);
+    if (saveFlashTimerRef.current) {
+      clearTimeout(saveFlashTimerRef.current);
+      saveFlashTimerRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- title read when itemId changes only
   }, [itemId]);
+
+  // After refresh, server may briefly send an empty title — never clobber a value we already show
+  useEffect(() => {
+    const t = title.trim();
+    if (!t) return;
+    setDisplayTitle(t);
+    if (!editing) setValue(t);
+  }, [title, editing]);
 
   function startEdit() {
     setEditing(true);
@@ -59,7 +73,15 @@ export function ItemTitleEditable({
       if (res.ok) {
         setDisplayTitle(trimmed);
         setEditing(false);
-        router.refresh();
+        setSavedFlash(true);
+        if (saveFlashTimerRef.current) clearTimeout(saveFlashTimerRef.current);
+        saveFlashTimerRef.current = setTimeout(() => {
+          setSavedFlash(false);
+          saveFlashTimerRef.current = null;
+        }, 2200);
+        startTransition(() => {
+          router.refresh();
+        });
       } else {
         const err = await res.json().catch(() => ({}));
         setError(err?.error ?? "Could not save. Please try again.");
@@ -113,10 +135,18 @@ export function ItemTitleEditable({
   }
 
   return (
-    <div className="flex min-w-0 items-start gap-2">
+    <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1">
       <h1 className="min-w-0 break-words text-2xl font-semibold tracking-tight sm:text-3xl">
         {displayTitle}
       </h1>
+      {savedFlash ? (
+        <span
+          className="mt-1 shrink-0 text-xs font-medium text-green-700"
+          role="status"
+        >
+          Saved
+        </span>
+      ) : null}
       {canEdit ? (
         <button
           type="button"

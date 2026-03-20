@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import { TAGS } from "@/lib/tags";
 
 type ItemType = "FILM" | "SHOW" | "BOOK";
@@ -46,6 +46,17 @@ export function ItemDetailsEditable({
   const [selectedTags, setSelectedTags] = useState<string[]>(() => [...tags]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function flashNotice(msg: string) {
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    setSaveNotice(msg);
+    noticeTimerRef.current = setTimeout(() => {
+      setSaveNotice(null);
+      noticeTimerRef.current = null;
+    }, 2200);
+  }
 
   useEffect(() => {
     setSavedDirector(director ?? "");
@@ -54,7 +65,33 @@ export function ItemDetailsEditable({
     setDirValue(director ?? "");
     setDescValue(description ?? "");
     setSelectedTags([...tags]);
+    setSaveNotice(null);
+    if (noticeTimerRef.current) {
+      clearTimeout(noticeTimerRef.current);
+      noticeTimerRef.current = null;
+    }
   }, [itemId]);
+
+  // Don’t adopt empty props during router.refresh() — avoids blanking fields the user just filled
+  useEffect(() => {
+    const d = director ?? "";
+    if (!d.trim()) return;
+    setSavedDirector(d);
+    if (editSection !== "director") setDirValue(d);
+  }, [director, editSection]);
+
+  useEffect(() => {
+    const desc = description ?? "";
+    if (!desc.trim()) return;
+    setSavedDescription(desc);
+    if (editSection !== "description") setDescValue(desc);
+  }, [description, editSection]);
+
+  useEffect(() => {
+    if (tags.length === 0) return;
+    setSavedTags([...tags]);
+    if (editSection !== "tags") setSelectedTags([...tags]);
+  }, [tags, editSection]);
 
   function openDirectorEdit() {
     setEditSection("director");
@@ -90,7 +127,8 @@ export function ItemDetailsEditable({
       if (res.ok) {
         setSavedDirector(dirValue.trim());
         setEditSection(null);
-        router.refresh();
+        flashNotice(`${labelForDirector(itemType)} saved`);
+        startTransition(() => router.refresh());
       } else {
         const err = await res.json().catch(() => ({}));
         setSaveError(err?.error ?? "Could not save. Please try again.");
@@ -114,7 +152,8 @@ export function ItemDetailsEditable({
       if (res.ok) {
         setSavedDescription(descValue.trim());
         setEditSection(null);
-        router.refresh();
+        flashNotice("Description saved");
+        startTransition(() => router.refresh());
       } else {
         const err = await res.json().catch(() => ({}));
         setSaveError(err?.error ?? "Could not save. Please try again.");
@@ -138,7 +177,8 @@ export function ItemDetailsEditable({
       if (res.ok) {
         setSavedTags([...selectedTags]);
         setEditSection(null);
-        router.refresh();
+        flashNotice("Tags saved");
+        startTransition(() => router.refresh());
       } else {
         const err = await res.json().catch(() => ({}));
         setSaveError(err?.error ?? "Could not save. Please try again.");
@@ -152,6 +192,15 @@ export function ItemDetailsEditable({
 
   return (
     <div className="mt-8 min-w-0 space-y-6">
+      {saveNotice ? (
+        <p
+          className="text-sm font-medium text-green-700"
+          role="status"
+          aria-live="polite"
+        >
+          {saveNotice}
+        </p>
+      ) : null}
       {/* Director / Author */}
       <div>
         <div className="flex items-center justify-between gap-2">

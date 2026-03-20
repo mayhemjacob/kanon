@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type ItemPosterProps = {
@@ -26,6 +26,13 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
     setUploadedDataUrl(null);
     setUrlInput(initialImageUrl ?? "");
   }, [itemId]);
+
+  // After save, refresh can briefly send null — keep showing the image until server sends a URL again
+  useEffect(() => {
+    if (!initialImageUrl) return;
+    setImageUrl(initialImageUrl);
+    setImageError(false);
+  }, [initialImageUrl]);
 
   const previewImage = uploadedDataUrl || (urlInput.trim() || null) || imageUrl;
 
@@ -78,7 +85,7 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
       }
       setImageUrl(nextImage);
       setModalOpen(false);
-      router.refresh();
+      startTransition(() => router.refresh());
     } catch (err) {
       const isAbort = err instanceof Error && err.name === "AbortError";
       setError(isAbort ? "Request took too long. Please try again." : "Could not update photo.");
