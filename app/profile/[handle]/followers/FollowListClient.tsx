@@ -44,10 +44,9 @@ export function FollowListClient({
       e.stopPropagation();
       if (loadingHandles.has(handleSlug)) return;
 
-      setLoadingHandles((prev) => new Set(prev).add(handleSlug));
-      const wasFollowing = followState[handleSlug];
-
+      const wasFollowing = followState[handleSlug] ?? false;
       setFollowState((prev) => ({ ...prev, [handleSlug]: !wasFollowing }));
+      setLoadingHandles((prev) => new Set(prev).add(handleSlug));
 
       try {
         const res = await fetch(
@@ -147,8 +146,7 @@ export function FollowListClient({
                     <button
                       type="button"
                       onClick={(e) => handleFollowToggle(e, handleSlug)}
-                      disabled={loadingHandles.has(handleSlug)}
-                      className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
+                      className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium transition-colors ${
                         following
                           ? "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                           : "bg-zinc-900 text-white hover:bg-zinc-800"

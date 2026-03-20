@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatTimeAgo } from "@/lib/date";
 
 type SortOption = "reviewDate" | "rating" | "publicationYear";
@@ -34,8 +34,13 @@ type Props = {
 export function ProfileByHandleClient({ profile: initialProfile }: Props) {
   const router = useRouter();
   const [following, setFollowing] = useState(initialProfile.followingByMe);
-  const [followLoading, setFollowLoading] = useState(false);
-  const followRequestIdRef = useRef(0);
+  const [followersCount, setFollowersCount] = useState(initialProfile.followers);
+  const followBusyRef = useRef(false);
+
+  useEffect(() => {
+    setFollowing(initialProfile.followingByMe);
+    setFollowersCount(initialProfile.followers);
+  }, [initialProfile.followingByMe, initialProfile.followers, initialProfile.handle]);
 
   const [activeType, setActiveType] = useState<"All" | "Films" | "Series" | "Books">("All");
   const [sortBy, setSortBy] = useState<SortOption>("reviewDate");
@@ -66,10 +71,13 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
   }, [initialProfile.cards, activeType, sortBy]);
 
   const handleFollowToggle = useCallback(async () => {
+    if (followBusyRef.current) return;
     const handleSlug = initialProfile.handle.replace(/^@/, "");
-    setFollowLoading(true);
     const wasFollowing = following;
+    const delta = wasFollowing ? -1 : 1;
+    followBusyRef.current = true;
     setFollowing((prev) => !prev);
+    setFollowersCount((c) => Math.max(0, c + delta));
     try {
       const res = await fetch(`/api/users/${encodeURIComponent(handleSlug)}/follow`, {
         method: "POST",
@@ -77,14 +85,18 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
       if (res.ok) {
         const data = await res.json();
         setFollowing(data.following);
-        followRequestIdRef.current += 1;
+        if (data.following === wasFollowing) {
+          setFollowersCount((c) => Math.max(0, c - delta));
+        }
       } else {
         setFollowing(wasFollowing);
+        setFollowersCount((c) => Math.max(0, c - delta));
       }
     } catch {
       setFollowing(wasFollowing);
+      setFollowersCount((c) => Math.max(0, c - delta));
     } finally {
-      setFollowLoading(false);
+      followBusyRef.current = false;
     }
   }, [initialProfile.handle, following]);
 
@@ -116,7 +128,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
               href={`/profile/${initialProfile.handle.replace(/^@/, "")}/followers`}
               className="hover:opacity-80 transition-opacity"
             >
-              <div className="font-semibold">{initialProfile.followers}</div>
+              <div className="font-semibold">{followersCount}</div>
               <div className="text-zinc-500 text-xs">Followers</div>
             </Link>
             <Link
@@ -131,8 +143,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
             <button
               type="button"
               onClick={handleFollowToggle}
-              disabled={followLoading}
-              className={`rounded-full px-8 py-2.5 text-sm font-medium transition-colors disabled:opacity-60 ${
+              className={`rounded-full px-8 py-2.5 text-sm font-medium transition-colors ${
                 following
                   ? "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                   : "bg-zinc-900 text-white hover:bg-zinc-800"
