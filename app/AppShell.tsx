@@ -29,8 +29,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <div className="mx-auto flex max-w-5xl md:px-6">
+    <div className="min-h-screen bg-zinc-50 md:h-dvh md:max-h-dvh md:overflow-hidden">
+      <div className="mx-auto flex max-w-5xl md:h-full md:min-h-0 md:px-6">
         {!hideNav && (
           <aside className="hidden w-56 shrink-0 border-r border-zinc-200 bg-white px-4 py-6 md:flex md:flex-col md:gap-6">
             <div className="text-lg font-semibold tracking-tight">Kanon</div>
@@ -52,8 +52,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </aside>
         )}
 
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <div className="flex-1">{children}</div>
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col md:h-full md:min-h-0">
+          <div className="flex-1 md:min-h-0 md:overflow-y-auto">{children}</div>
           {!hideNav && !otherUserProfile && <TabBar />}
         </div>
       </div>
