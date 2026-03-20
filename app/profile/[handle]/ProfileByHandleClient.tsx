@@ -284,11 +284,11 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
                         className="h-full w-full object-cover"
                       />
                     ) : null}
-                    <div className="absolute left-2 top-2 flex items-center justify-between w-[calc(100%-1rem)]">
-                      <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
+                    <div className="pointer-events-none absolute inset-0 flex items-start justify-between p-1.5">
+                      <span className="pointer-events-auto rounded-full bg-zinc-900/90 px-1.5 py-0.5 text-[9px] font-medium text-white leading-none">
                         {card.type === "SHOW" ? "SERIES" : card.type}
                       </span>
-                      <span className="rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
+                      <span className="pointer-events-auto rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
                         {Number.isInteger(card.rating) ? card.rating : card.rating.toFixed(1)}
                       </span>
                     </div>

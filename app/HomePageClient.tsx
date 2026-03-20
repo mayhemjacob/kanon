@@ -544,8 +544,8 @@ export function HomePageClient({
                               className="h-full w-full object-cover"
                             />
                           ) : null}
-                          <div className="absolute left-[3px] top-[1px]">
-                            <span className="rounded-full bg-zinc-900/90 px-1.5 py-0.5 text-[9px] font-medium text-white">
+                          <div className="pointer-events-none absolute inset-0 flex items-start justify-start p-1.5">
+                            <span className="pointer-events-auto rounded-full bg-zinc-900/90 px-1.5 py-0.5 text-[9px] font-medium text-white leading-none">
                               {review.itemType === "SHOW" ? "SERIES" : review.itemType}
                             </span>
                           </div>

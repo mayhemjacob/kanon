@@ -122,8 +122,12 @@ export default function SavedPage() {
                 className="relative overflow-hidden rounded-2xl bg-zinc-200"
                 aria-hidden
               >
-                <div className="aspect-[3/4] w-full animate-pulse bg-zinc-300" />
-                <div className="absolute left-2 top-2 h-5 w-12 rounded-full bg-zinc-400/80" />
+                <div className="relative aspect-[3/4] w-full">
+                  <div className="h-full w-full animate-pulse bg-zinc-300" />
+                  <div className="absolute inset-0 p-1.5">
+                    <div className="h-5 w-12 rounded-full bg-zinc-400/80" />
+                  </div>
+                </div>
                 <div className="absolute inset-x-3 bottom-3 h-4 w-24 animate-pulse rounded bg-zinc-400/80" />
               </div>
             ))
@@ -143,15 +147,17 @@ export default function SavedPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : null}
+                <div className="pointer-events-none absolute inset-0 flex items-start justify-start p-1.5">
+                  <span className="pointer-events-auto rounded-full bg-zinc-900/90 px-1.5 py-0.5 text-[9px] font-medium text-white leading-none">
+                    {typeLabel(item.type)}
+                  </span>
+                </div>
               </div>
-              <span className="absolute left-2 top-2 rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-medium text-white">
-                {typeLabel(item.type)}
-              </span>
               <button
                 type="button"
                 onClick={(e) => handleUnsave(e, item.itemId)}
                 disabled={unsavingId === item.itemId}
-                className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900/90 text-white hover:bg-zinc-900 disabled:opacity-60"
+                className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900/90 text-white hover:bg-zinc-900 disabled:opacity-60"
                 aria-label="Unsave"
               >
                 <svg
