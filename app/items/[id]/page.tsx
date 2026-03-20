@@ -295,7 +295,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
                   {item.title}
                 </div>
                 {item.year && (
-                  <div className="text-[11px] text-zinc-500">{item.year}</div>
+                  <div className="pb-1 text-[11px] text-zinc-500">{item.year}</div>
                 )}
               </Link>
             ))}
