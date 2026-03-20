@@ -74,6 +74,10 @@ export default async function ProfileByHandlePage({
     year: r.item.year ?? null,
   }));
 
+  const isOwnProfile = Boolean(
+    session?.user?.id && session.user.id === targetUser.id
+  );
+
   const profile: ProfileData = {
     handle: `@${targetUser.handle}`,
     bio: targetUser.bio ?? null,
@@ -82,6 +86,7 @@ export default async function ProfileByHandlePage({
     following: targetUser._count.following,
     cards,
     followingByMe: !!followRow,
+    isOwnProfile,
   };
 
   return <ProfileByHandleClient profile={profile} />;

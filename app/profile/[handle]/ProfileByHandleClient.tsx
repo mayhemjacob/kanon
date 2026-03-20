@@ -25,6 +25,8 @@ export type ProfileData = {
     year: number | null;
   }[];
   followingByMe: boolean;
+  /** Logged-in viewer is this profile (e.g. arrived from a review link to own handle). */
+  isOwnProfile: boolean;
 };
 
 type Props = {
@@ -139,19 +141,21 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
               <div className="text-zinc-500 text-xs">Following</div>
             </Link>
           </div>
-          <div className="mt-4 flex justify-center">
-            <button
-              type="button"
-              onClick={handleFollowToggle}
-              className={`rounded-full px-8 py-2.5 text-sm font-medium transition-colors ${
-                following
-                  ? "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-                  : "bg-zinc-900 text-white hover:bg-zinc-800"
-              }`}
-            >
-              {following ? "Following" : "Follow"}
-            </button>
-          </div>
+          {!initialProfile.isOwnProfile ? (
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={handleFollowToggle}
+                className={`rounded-full px-8 py-2.5 text-sm font-medium transition-colors ${
+                  following
+                    ? "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                    : "bg-zinc-900 text-white hover:bg-zinc-800"
+                }`}
+              >
+                {following ? "Following" : "Follow"}
+              </button>
+            </div>
+          ) : null}
         </header>
 
         <section className="space-y-3 pt-4">
