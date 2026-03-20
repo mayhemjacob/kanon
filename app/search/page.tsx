@@ -12,6 +12,9 @@ export type DiscoverPerson = {
   image: string | null;
 };
 
+/** First-load cap for People tab (alphabetical by handle). Avoids loading every user on Culture-default visits. */
+const DISCOVER_PEOPLE_INITIAL_LIMIT = 100;
+
 const offlineDiscoverItems: ItemCardItem[] = [
   { id: "1", title: "Dune: Part Two", year: 2024, type: "FILM", averageRating: 9.2, ratingCount: 2, tags: ["Sci-Fi", "Adventure"], imageUrl: null },
   { id: "2", title: "The Bear", year: 2023, type: "SHOW", averageRating: 9.8, ratingCount: 2, tags: ["Drama", "Comedy"], imageUrl: null },
@@ -46,16 +49,48 @@ export default async function DiscoverPage({
     prisma.item.findMany({
       take: 20,
       orderBy: { createdAt: "desc" },
-      include: { reviews: true },
+      select: {
+        id: true,
+        title: true,
+        year: true,
+        type: true,
+        imageUrl: true,
+      },
     }),
     prisma.user.findMany({
       where: { handle: { not: null } },
       select: { id: true, handle: true, bio: true, image: true },
       orderBy: { handle: "asc" },
+      take: DISCOVER_PEOPLE_INITIAL_LIMIT,
     }),
   ]);
 
   const items = itemsResult;
+  const itemIds = items.map((i) => i.id);
+
+  const reviewAggregates =
+    itemIds.length > 0
+      ? await prisma.review.groupBy({
+          by: ["itemId"],
+          where: { itemId: { in: itemIds } },
+          _avg: { rating: true },
+          _count: { _all: true },
+        })
+      : [];
+
+  const statsByItemId = new Map(
+    reviewAggregates.map((row) => [
+      row.itemId,
+      {
+        ratingCount: row._count._all,
+        averageRating:
+          row._count._all === 0 || row._avg.rating == null
+            ? 0
+            : Number(Number(row._avg.rating).toFixed(1)),
+      },
+    ]),
+  );
+
   const people: DiscoverPerson[] = peopleRows
     .filter((u): u is typeof u & { handle: string } => u.handle != null)
     .map((u) => ({
@@ -66,15 +101,9 @@ export default async function DiscoverPage({
     }));
 
   const mapped: ItemCardItem[] = items.map((item) => {
-    const ratingCount = item.reviews.length;
-    const averageRating =
-      ratingCount === 0
-        ? 0
-        : Number(
-            (
-              item.reviews.reduce((sum, r) => sum + r.rating, 0) / ratingCount
-            ).toFixed(1)
-          );
+    const stat = statsByItemId.get(item.id);
+    const ratingCount = stat?.ratingCount ?? 0;
+    const averageRating = stat?.averageRating ?? 0;
 
     return {
       id: item.id,

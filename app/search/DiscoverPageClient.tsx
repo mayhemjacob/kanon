@@ -74,8 +74,17 @@ export function DiscoverPageClient({
   }, [discoverItemIds]);
 
   useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
+    if (discoverItemIds.length === 0) return;
+    const hasAllFromServer = discoverItemIds.every((id) =>
+      Object.prototype.hasOwnProperty.call(initialStatus, id),
+    );
+    // Server already sent per-item status for logged-in users; skip duplicate /api/items/status.
+    if (hasAllFromServer) return;
+    // Logged-out: server passes {}; saved/review defaults are false — no need to call API (401).
+    if (Object.keys(initialStatus).length === 0) return;
+    // Partial map only (unexpected): refresh from API.
+    void fetchStatus();
+  }, [discoverItemIds, initialStatus, fetchStatus]);
 
   useEffect(() => {
     setTab(initialTab);

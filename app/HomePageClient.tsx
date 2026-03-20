@@ -16,7 +16,9 @@ export type HomeReview = {
   itemType: "FILM" | "SHOW" | "BOOK";
   itemImageUrl: string | null;
   title: string;
-  tags: string[];
+  /** Optional; omitted from `/api/feed` (home list has no tags). Offline dev can still set tags. */
+  tags?: string[];
+  /** From API: short preview only. Full text is on the review page. */
   body: string | null;
   timeAgo: string;
   createdAt: Date; // for sort by review date
@@ -559,7 +561,7 @@ export function HomePageClient({
                           )}
                         </h2>
                         <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
-                          {review.tags.slice(0, 3).map((tag) => (
+                          {(review.tags ?? []).slice(0, 3).map((tag) => (
                             <span
                               key={tag}
                               className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600"
@@ -582,9 +584,7 @@ export function HomePageClient({
                           )}
                         </div>
                         <p className="mt-3 text-sm text-zinc-700 line-clamp-2">
-                          {review.body && review.body.length > 120
-                            ? `${review.body.slice(0, 120).trim()}…`
-                            : review.body}
+                          {review.body}
                         </p>
                       </div>
                     </Link>

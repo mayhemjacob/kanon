@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { prisma } from "@/lib/prisma";
 
+/** First batch for /saved (newest saved first). No load-more yet. */
+const SAVED_ITEMS_INITIAL_LIMIT = 40;
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -30,9 +33,18 @@ export async function GET() {
   const saved = await prisma.savedItem.findMany({
     where: { userId: user.id },
     include: {
-      item: true,
+      item: {
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          year: true,
+          imageUrl: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
+    take: SAVED_ITEMS_INITIAL_LIMIT,
   });
 
   return NextResponse.json(

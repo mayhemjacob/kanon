@@ -2,6 +2,12 @@ import { prisma } from "@/lib/prisma";
 import type { HomeReview } from "@/app/HomePageClient";
 import type { ItemStatus } from "@/app/api/items/status/route";
 
+/** First-load batch size for `/api/feed` (no load-more yet). */
+const HOME_FEED_INITIAL_LIMIT = 15;
+
+/** Max characters for home-card body preview (matches Home card line-clamp behavior). */
+const HOME_BODY_PREVIEW_CHARS = 120;
+
 function timeAgo(from: Date): string {
   const diffMs = Date.now() - from.getTime();
   const sec = Math.floor(diffMs / 1000);
@@ -36,15 +42,24 @@ type FeedRow = {
 export async function getHomeFeed(
   userId: string
 ): Promise<{ reviews: HomeReview[]; initialStatus: Record<string, ItemStatus> }> {
+  /*
+   * Home feed (single round-trip, no N+1):
+   * - Restrict to reviews whose author is someone the viewer follows via INNER JOIN Follow
+   *   (same as WHERE userId IN (SELECT followingId ...), often friendlier to the planner).
+   * - ORDER BY + LIMIT use @@index([userId, createdAt(sort: Desc)]) on Review for
+   *   bitmap/merge plans over followees; Follow rows are found via @@unique([followerId, followingId]).
+   * - SavedItem / self-join Review use @@unique([userId, itemId]) on those tables.
+   */
   const rows = await prisma.$queryRaw<FeedRow[]>`
-    WITH following AS (
-      SELECT "followingId" FROM "Follow" WHERE "followerId" = ${userId}
-    )
     SELECT
       r.id,
       r."itemId",
       r.rating,
-      r.body,
+      CASE
+        WHEN r.body IS NULL THEN NULL
+        WHEN char_length(r.body) <= ${HOME_BODY_PREVIEW_CHARS}::integer THEN r.body
+        ELSE LEFT(r.body, ${HOME_BODY_PREVIEW_CHARS}::integer) || '…'
+      END AS body,
       r."createdAt",
       u.handle    AS user_handle,
       u.name     AS user_name,
@@ -58,13 +73,15 @@ export async function getHomeFeed(
       (r2."itemId" IS NOT NULL) AS reviewed,
       r2.id AS my_review_id
     FROM "Review" r
+    INNER JOIN "Follow" f
+      ON f."followingId" = r."userId"
+      AND f."followerId" = ${userId}
     INNER JOIN "User" u ON r."userId" = u.id
     INNER JOIN "Item" i ON r."itemId" = i.id
     LEFT JOIN "SavedItem" s ON s."userId" = ${userId} AND s."itemId" = r."itemId"
     LEFT JOIN "Review" r2 ON r2."userId" = ${userId} AND r2."itemId" = r."itemId"
-    WHERE r."userId" IN (SELECT "followingId" FROM following)
     ORDER BY r."createdAt" DESC
-    LIMIT 50
+    LIMIT ${HOME_FEED_INITIAL_LIMIT}
   `;
 
   const reviews: HomeReview[] = [];
@@ -75,7 +92,7 @@ export async function getHomeFeed(
     const userName = handle.startsWith("@") ? handle.slice(1) : handle;
     const avatarInitial = (userName[0] ?? row.user_email?.[0] ?? "U").toUpperCase();
 
-    reviews.push({
+    const review: HomeReview = {
       id: row.id,
       itemId: row.itemId,
       userName,
@@ -85,12 +102,12 @@ export async function getHomeFeed(
       itemType: row.item_type as "FILM" | "SHOW" | "BOOK",
       itemImageUrl: row.item_imageurl ?? null,
       title: row.item_title,
-      tags: [],
       body: row.body ?? null,
       timeAgo: timeAgo(row.createdAt),
       createdAt: row.createdAt,
       year: row.item_year ?? null,
-    });
+    };
+    reviews.push(review);
 
     initialStatus[row.itemId] = {
       saved: !!row.saved,

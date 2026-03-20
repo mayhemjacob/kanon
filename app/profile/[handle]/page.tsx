@@ -4,6 +4,9 @@ import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { notFound } from "next/navigation";
 import { ProfileByHandleClient, type ProfileData } from "./ProfileByHandleClient";
 
+/** First batch of RATED grid reviews (newest first). Matches /profile cap; no load-more yet. */
+const PROFILE_REVIEWS_INITIAL_LIMIT = 40;
+
 function normalizeHandle(handle: string): string {
   return handle.trim().toLowerCase().replace(/^@/, "");
 }
@@ -49,6 +52,7 @@ export default async function ProfileByHandlePage({
         },
       },
       orderBy: { createdAt: "desc" },
+      take: PROFILE_REVIEWS_INITIAL_LIMIT,
     }),
     session?.user?.id && session.user.id !== targetUser.id
       ? prisma.follow.findUnique({
