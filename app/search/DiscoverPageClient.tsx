@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -22,6 +23,10 @@ const ratingOptions: RatingFilterOption[] = [10, 9, 8, 7, 6, 5, 4, "≤3"];
 function ratingMatchesBand(rating: number, band: RatingFilterOption): boolean {
   if (band === "≤3") return rating <= 3;
   return rating >= band && rating < band + 1;
+}
+
+function imageNeedsUnoptimized(src: string): boolean {
+  return src.startsWith("data:") || src.startsWith("blob:");
 }
 
 export function DiscoverPageClient({
@@ -168,6 +173,16 @@ export function DiscoverPageClient({
     );
   }, [people, trimmed]);
 
+  const firstCultureCoverIndex = useMemo(
+    () => filteredItems.findIndex((i) => !!i.imageUrl),
+    [filteredItems]
+  );
+
+  const firstPeopleImageIndex = useMemo(
+    () => filteredPeople.findIndex((p) => !!p.image),
+    [filteredPeople]
+  );
+
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-2xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-8 md:pb-8">
@@ -269,7 +284,7 @@ export function DiscoverPageClient({
               </div>
 
               <ul className="divide-y divide-zinc-100 rounded-2xl border border-zinc-100 bg-white">
-                {filteredItems.map((item) => (
+                {filteredItems.map((item, index) => (
                   <li key={item.id}>
                     <ItemCard
                       item={item}
@@ -277,6 +292,10 @@ export function DiscoverPageClient({
                       reviewed={statusMap[item.id]?.reviewed ?? false}
                       reviewId={statusMap[item.id]?.reviewId}
                       onSaveToggle={handleSaveToggle}
+                      coverImagePriority={
+                        index === firstCultureCoverIndex &&
+                        firstCultureCoverIndex !== -1
+                      }
                     />
                   </li>
                 ))}
@@ -286,7 +305,7 @@ export function DiscoverPageClient({
 
           {tab === "people" && (
             <ul className="space-y-2">
-              {filteredPeople.map((person) => {
+              {filteredPeople.map((person, index) => {
                 const handleSlug = person.handle.replace(/^@/, "");
                 return (
                   <li key={person.id}>
@@ -294,13 +313,20 @@ export function DiscoverPageClient({
                       href={`/profile/${encodeURIComponent(handleSlug)}`}
                       className="flex w-full items-center gap-3 rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-left text-sm transition-colors hover:bg-zinc-100 sm:px-5"
                     >
-                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-zinc-300">
+                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-zinc-300">
                         {person.image ? (
-                          <img
+                          <Image
                             src={person.image}
                             alt=""
-                            loading="lazy"
+                            width={40}
+                            height={40}
                             className="h-full w-full object-cover"
+                            sizes="40px"
+                            priority={
+                              index === firstPeopleImageIndex &&
+                              firstPeopleImageIndex !== -1
+                            }
+                            unoptimized={imageNeedsUnoptimized(person.image)}
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-sm font-medium text-zinc-500">

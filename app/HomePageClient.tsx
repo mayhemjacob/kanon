@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -36,6 +37,10 @@ const ratingOptions: RatingFilterOption[] = [10, 9, 8, 7, 6, 5, 4, "≤3"];
 function ratingMatchesBand(rating: number, band: RatingFilterOption): boolean {
   if (band === "≤3") return rating <= 3;
   return rating >= band && rating < band + 1;
+}
+
+function imageNeedsUnoptimized(src: string): boolean {
+  return src.startsWith("data:") || src.startsWith("blob:");
 }
 
 function FeedSkeleton() {
@@ -419,7 +424,7 @@ export function HomePageClient({
           </section>
         ) : (
           <section className="space-y-4 pb-20">
-            {filtered.map((review) => (
+            {filtered.map((review, index) => (
               <article
                 key={review.id}
                 className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5"
@@ -430,11 +435,15 @@ export function HomePageClient({
                     className="flex h-9 w-9 shrink-0 overflow-hidden rounded-full bg-zinc-200 hover:opacity-90 transition-opacity"
                   >
                     {review.userImage ? (
-                      <img
+                      <Image
                         src={review.userImage}
                         alt=""
-                        loading="lazy"
+                        width={36}
+                        height={36}
                         className="h-full w-full object-cover"
+                        sizes="36px"
+                        priority={index === 0}
+                        unoptimized={imageNeedsUnoptimized(review.userImage)}
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-xs font-medium text-white">
@@ -539,11 +548,16 @@ export function HomePageClient({
                       <div className="h-full overflow-hidden rounded-lg min-w-[4.5rem] w-20">
                         <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-zinc-800">
                           {review.itemImageUrl ? (
-                            <img
+                            <Image
                               src={review.itemImageUrl}
                               alt=""
-                              loading="lazy"
-                              className="h-full w-full object-cover"
+                              fill
+                              className="object-cover"
+                              sizes="80px"
+                              priority={index === 0 && !review.userImage}
+                              unoptimized={imageNeedsUnoptimized(
+                                review.itemImageUrl
+                              )}
                             />
                           ) : null}
                           <div className="pointer-events-none absolute inset-0 flex items-start justify-start p-1.5">

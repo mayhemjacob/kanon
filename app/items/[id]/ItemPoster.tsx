@@ -9,12 +9,21 @@ type ItemPosterProps = {
   imageUrl: string | null;
 };
 
+function revokeIfBlob(url: string | null) {
+  if (url?.startsWith("blob:")) {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPosterProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(initialImageUrl);
-  const [uploadedDataUrl, setUploadedDataUrl] = useState<string | null>(null);
+  /** Local file chosen for upload; sent to /api/upload on save (not stored as base64). */
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  /** Object URL for previewing selectedFile; revoked when replaced or cleared. */
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState(initialImageUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +32,11 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
   useEffect(() => {
     setImageUrl(initialImageUrl);
     setImageError(false);
-    setUploadedDataUrl(null);
+    setSelectedFile(null);
+    setFilePreviewUrl((prev) => {
+      revokeIfBlob(prev);
+      return null;
+    });
     setUrlInput(initialImageUrl ?? "");
   }, [itemId]);
 
@@ -34,12 +47,21 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
     setImageError(false);
   }, [initialImageUrl]);
 
-  const previewImage = uploadedDataUrl || (urlInput.trim() || null) || imageUrl;
+  useEffect(() => {
+    return () => revokeIfBlob(filePreviewUrl);
+  }, [filePreviewUrl]);
+
+  const previewImage =
+    filePreviewUrl || (urlInput.trim() || null) || imageUrl;
 
   function openModal() {
     setModalOpen(true);
     setSaving(false);
-    setUploadedDataUrl(null);
+    setSelectedFile(null);
+    setFilePreviewUrl((prev) => {
+      revokeIfBlob(prev);
+      return null;
+    });
     setUrlInput(imageUrl ?? "");
     setError(null);
     setImageError(false);
@@ -48,29 +70,55 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = typeof reader.result === "string" ? reader.result : null;
-      if (result) {
-        setUploadedDataUrl(result);
-        setUrlInput("");
-        setError(null);
-      }
-    };
-    reader.readAsDataURL(file);
+    setUrlInput("");
+    setFilePreviewUrl((prev) => {
+      revokeIfBlob(prev);
+      return URL.createObjectURL(file);
+    });
+    setSelectedFile(file);
+    setError(null);
+    e.target.value = "";
   }
 
   async function onSavePhoto() {
-    let nextImage = uploadedDataUrl || (urlInput.trim() || null);
-    if (nextImage?.startsWith("data:") && nextImage.length > 100_000) {
-      const { resizeDataUrl } = await import("@/lib/resize-image");
-      nextImage = await resizeDataUrl(nextImage, { maxPx: 512, quality: 0.85 });
-    }
     setSaving(true);
     setError(null);
+
+    let nextImage: string | null = null;
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 60_000);
+
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("itemId", itemId);
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        });
+
+        if (!uploadRes.ok) {
+          const data = await uploadRes.json().catch(() => null);
+          clearTimeout(timeoutId);
+          setError(data?.error || "Could not upload photo.");
+          return;
+        }
+
+        const uploadJson = (await uploadRes.json()) as { url?: string };
+        if (!uploadJson.url || typeof uploadJson.url !== "string") {
+          clearTimeout(timeoutId);
+          setError("Upload did not return a URL.");
+          return;
+        }
+        nextImage = uploadJson.url;
+      } else {
+        nextImage = urlInput.trim() || null;
+      }
+
       const res = await fetch(`/api/items/${itemId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -78,17 +126,28 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setError(data?.error || "Could not update photo.");
         return;
       }
+
       setImageUrl(nextImage);
+      setSelectedFile(null);
+      setFilePreviewUrl((prev) => {
+        revokeIfBlob(prev);
+        return null;
+      });
       setModalOpen(false);
       startTransition(() => router.refresh());
     } catch (err) {
       const isAbort = err instanceof Error && err.name === "AbortError";
-      setError(isAbort ? "Request took too long. Please try again." : "Could not update photo.");
+      setError(
+        isAbort
+          ? "Request took too long. Please try again."
+          : "Could not update photo."
+      );
     } finally {
       setSaving(false);
     }
@@ -126,7 +185,7 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
             aria-hidden
             onClick={() => !saving && setModalOpen(false)}
           />
-          <div className="relative w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+          <div className="relative max-h-[min(90dvh,calc(100vh-2rem))] w-full max-w-sm overflow-y-auto overscroll-y-contain rounded-2xl bg-white p-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold tracking-tight">Edit Photo</h2>
               <button
@@ -184,7 +243,11 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
                 value={urlInput}
                 onChange={(e) => {
                   setUrlInput(e.target.value);
-                  setUploadedDataUrl(null);
+                  setSelectedFile(null);
+                  setFilePreviewUrl((prev) => {
+                    revokeIfBlob(prev);
+                    return null;
+                  });
                   setError(null);
                 }}
                 placeholder="Or paste image URL"

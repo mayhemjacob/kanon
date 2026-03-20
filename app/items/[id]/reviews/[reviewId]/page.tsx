@@ -186,7 +186,7 @@ export default async function ItemReviewPage({
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-2xl px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-8">
+      <div className="mx-auto max-w-2xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-8 md:pb-8">
         {/* Header: back arrow, then item summary + actions */}
         <div className="mb-4">
           <Link

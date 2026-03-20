@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -18,6 +19,10 @@ type TypeFilter = (typeof typeOptions)[number];
 
 function typeLabel(type: ItemType): string {
   return type === "FILM" ? "FILM" : type === "SHOW" ? "SERIES" : "BOOK";
+}
+
+function imageNeedsUnoptimized(src: string): boolean {
+  return src.startsWith("data:") || src.startsWith("blob:");
 }
 
 export default function SavedPage() {
@@ -88,6 +93,11 @@ export default function SavedPage() {
     return savedItems;
   }, [activeType, savedItems]);
 
+  const firstFilteredCoverIndex = useMemo(
+    () => filtered.findIndex((i) => !!i.imageUrl),
+    [filtered]
+  );
+
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-2xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-8 md:pb-8">
@@ -132,7 +142,7 @@ export default function SavedPage() {
               </div>
             ))
           ) : (
-          filtered.map((item) => (
+          filtered.map((item, index) => (
             <Link
               key={item.itemId}
               href={`/items/${item.itemId}`}
@@ -140,11 +150,17 @@ export default function SavedPage() {
             >
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-300">
                 {item.imageUrl ? (
-                  <img
+                  <Image
                     src={item.imageUrl}
                     alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 45vw, 320px"
+                    priority={
+                      index === firstFilteredCoverIndex &&
+                      firstFilteredCoverIndex !== -1
+                    }
+                    unoptimized={imageNeedsUnoptimized(item.imageUrl)}
                   />
                 ) : null}
                 <div className="pointer-events-none absolute inset-0 flex items-start justify-start p-1.5">

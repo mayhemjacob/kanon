@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 export type ItemType = "FILM" | "SHOW" | "BOOK";
@@ -48,18 +49,25 @@ function StarIcon({ className = "h-4 w-4", filled }: { className?: string; fille
 
 export type ItemCardStatus = { saved?: boolean; reviewed?: boolean; reviewId?: string };
 
+function imageNeedsUnoptimized(src: string): boolean {
+  return src.startsWith("data:") || src.startsWith("blob:");
+}
+
 export function ItemCard({
   item,
   saved = false,
   reviewed = false,
   reviewId,
   onSaveToggle,
+  coverImagePriority = false,
 }: {
   item: ItemCardItem;
   saved?: boolean;
   reviewed?: boolean;
   reviewId?: string;
   onSaveToggle?: (itemId: string) => void;
+  /** LCP hint: first visible cover in a list/grid */
+  coverImagePriority?: boolean;
 }) {
   const typeLabel =
     item.type === "FILM" ? "FILM" : item.type === "SHOW" ? "SERIES" : "BOOK";
@@ -72,11 +80,15 @@ export function ItemCard({
       >
         <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-zinc-200">
           {item.imageUrl ? (
-            <img
+            <Image
               src={item.imageUrl}
               alt=""
-              loading="lazy"
+              width={40}
+              height={56}
               className="h-full w-full object-cover"
+              sizes="40px"
+              priority={coverImagePriority}
+              unoptimized={imageNeedsUnoptimized(item.imageUrl)}
             />
           ) : null}
         </div>
