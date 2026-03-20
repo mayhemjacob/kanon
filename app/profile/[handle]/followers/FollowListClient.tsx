@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -118,13 +119,19 @@ export function FollowListClient({
                   href={`/profile/${handleSlug}`}
                   className="flex items-center gap-4 py-4 transition-colors first:pt-0 hover:bg-zinc-50/50 -mx-2 px-2 rounded-lg"
                 >
-                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200">
                     {user.image ? (
-                      <img
+                      <Image
                         src={user.image}
                         alt=""
-                        loading="lazy"
+                        width={48}
+                        height={48}
                         className="h-full w-full object-cover"
+                        sizes="48px"
+                        unoptimized={
+                          user.image.startsWith("data:") ||
+                          user.image.startsWith("blob:")
+                        }
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-base font-semibold text-zinc-500">

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -81,13 +82,18 @@ export function ReviewPageForm({ item }: { item: ReviewItemInfo }) {
 
         {/* Item summary */}
         <div className="mb-8 flex gap-4 rounded-2xl border border-zinc-200 bg-white p-4">
-          <div className="h-20 w-14 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
+          <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
             {item.imageUrl ? (
-              <img
+              <Image
                 src={item.imageUrl}
                 alt=""
-                loading="lazy"
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
+                sizes="56px"
+                unoptimized={
+                  item.imageUrl.startsWith("data:") ||
+                  item.imageUrl.startsWith("blob:")
+                }
               />
             ) : null}
           </div>

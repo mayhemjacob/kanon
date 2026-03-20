@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import Image from "next/image";
 import Link from "next/link";
 import { ItemActions } from "./ItemActions";
 import { ItemDetailsEditable } from "./ItemDetailsEditable";
@@ -269,7 +270,17 @@ export default async function ItemPage({ params }: ItemPageProps) {
               <Link key={item.id} href={`/items/${item.id}`} className="w-32 shrink-0 sm:w-36">
                 <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-zinc-200">
                   {item.imageUrl ? (
-                    <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+                    <Image
+                      src={item.imageUrl}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 128px, 144px"
+                      unoptimized={
+                        item.imageUrl.startsWith("data:") ||
+                        item.imageUrl.startsWith("blob:")
+                      }
+                    />
                   ) : null}
                   <div className="pointer-events-none absolute inset-0 flex items-start justify-start p-1.5">
                     <span className="pointer-events-auto rounded-full bg-zinc-900/90 px-1.5 py-0.5 text-[9px] font-medium text-white leading-none">

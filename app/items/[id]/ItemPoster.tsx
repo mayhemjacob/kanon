@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -13,6 +14,10 @@ function revokeIfBlob(url: string | null) {
   if (url?.startsWith("blob:")) {
     URL.revokeObjectURL(url);
   }
+}
+
+function imageNeedsUnoptimized(src: string): boolean {
+  return src.startsWith("data:") || src.startsWith("blob:");
 }
 
 export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPosterProps) {
@@ -158,13 +163,16 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
   return (
     <>
       <div className="relative mx-auto w-40 shrink-0 sm:mx-0 sm:w-48 group">
-        <div className="aspect-[3/4] overflow-hidden rounded-2xl bg-zinc-900/90">
+        <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-zinc-900/90">
           {displayUrl ? (
-            <img
+            <Image
               src={displayUrl}
               alt=""
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 160px, 192px"
               onError={() => setImageError(true)}
+              unoptimized={imageNeedsUnoptimized(displayUrl)}
             />
           ) : null}
         </div>
@@ -201,13 +209,16 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
               </button>
             </div>
 
-            <div className="mb-4 aspect-[3/4] overflow-hidden rounded-2xl bg-zinc-200">
+            <div className="relative mb-4 aspect-[3/4] overflow-hidden rounded-2xl bg-zinc-200">
               {previewImage && !imageError ? (
-                <img
+                <Image
                   src={previewImage}
                   alt=""
-                  className="h-full w-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, 384px"
                   onError={() => setImageError(true)}
+                  unoptimized={imageNeedsUnoptimized(previewImage)}
                 />
               ) : null}
             </div>

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import Image from "next/image";
 import Link from "next/link";
 import { ItemActions } from "../ItemActions";
 
@@ -188,13 +189,18 @@ export default async function ItemReviewsPage({
 
         {/* Item summary */}
         <div className="mb-8 flex gap-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4">
-          <div className="h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-200">
+          <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-200">
             {item.imageUrl ? (
-              <img
+              <Image
                 src={item.imageUrl}
                 alt=""
-                loading="lazy"
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
+                sizes="56px"
+                unoptimized={
+                  item.imageUrl.startsWith("data:") ||
+                  item.imageUrl.startsWith("blob:")
+                }
               />
             ) : null}
           </div>
@@ -256,14 +262,20 @@ export default async function ItemReviewsPage({
                 >
                   <Link
                     href={profileHref}
-                    className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-zinc-200 hover:opacity-90"
+                    className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-zinc-200 hover:opacity-90"
                   >
                     {review.user?.image ? (
-                      <img
+                      <Image
                         src={review.user.image}
                         alt=""
-                        loading="lazy"
+                        width={40}
+                        height={40}
                         className="h-full w-full object-cover"
+                        sizes="40px"
+                        unoptimized={
+                          review.user.image.startsWith("data:") ||
+                          review.user.image.startsWith("blob:")
+                        }
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-sm font-medium text-zinc-600">

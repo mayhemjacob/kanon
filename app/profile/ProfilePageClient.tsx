@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -155,17 +156,24 @@ export default function ProfilePageClient({
               <button
                 type="button"
                 onClick={() => router.push("/profile/edit-photo")}
-                className="mx-auto block h-20 w-20 overflow-hidden rounded-full bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-black/10"
+                className="relative mx-auto block h-20 w-20 overflow-hidden rounded-full bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-black/10"
                 aria-label="Edit photo"
               >
                 {profileLoading ? (
                   <div className="h-full w-full animate-pulse bg-zinc-300" />
                 ) : profile.image && !imageError ? (
-                  <img
+                  <Image
                     src={profile.image}
                     alt=""
+                    width={80}
+                    height={80}
                     className="h-full w-full object-cover"
+                    sizes="80px"
                     onError={() => setImageError(true)}
+                    unoptimized={
+                      profile.image.startsWith("data:") ||
+                      profile.image.startsWith("blob:")
+                    }
                   />
                 ) : null}
               </button>
@@ -445,11 +453,16 @@ export default function ProfilePageClient({
                   >
                     <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-300">
                       {card.imageUrl ? (
-                        <img
+                        <Image
                           src={card.imageUrl}
                           alt=""
-                          loading="lazy"
-                          className="h-full w-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 45vw, 320px"
+                          unoptimized={
+                            card.imageUrl.startsWith("data:") ||
+                            card.imageUrl.startsWith("blob:")
+                          }
                         />
                       ) : null}
                       <div className="pointer-events-none absolute inset-0 flex items-start justify-between p-1.5">

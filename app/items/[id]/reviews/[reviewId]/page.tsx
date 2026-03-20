@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatReviewDate } from "@/lib/date";
@@ -209,13 +210,18 @@ export default async function ItemReviewPage({
 
           <div className="mt-4 flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-1 gap-4">
-              <div className="h-24 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
+              <div className="relative h-24 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
                 {item.imageUrl ? (
-                  <img
+                  <Image
                     src={item.imageUrl}
                     alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                    unoptimized={
+                      item.imageUrl.startsWith("data:") ||
+                      item.imageUrl.startsWith("blob:")
+                    }
                   />
                 ) : null}
               </div>
@@ -262,13 +268,19 @@ export default async function ItemReviewPage({
             className="flex items-center justify-between rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-3 hover:bg-zinc-100/80"
           >
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-zinc-200">
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-zinc-200">
                 {user?.image ? (
-                  <img
+                  <Image
                     src={user.image}
                     alt=""
-                    loading="lazy"
+                    width={36}
+                    height={36}
                     className="h-full w-full object-cover"
+                    sizes="36px"
+                    unoptimized={
+                      user.image.startsWith("data:") ||
+                      user.image.startsWith("blob:")
+                    }
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs font-medium text-zinc-600">

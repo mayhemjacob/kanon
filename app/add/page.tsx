@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -367,10 +368,16 @@ export default function AddContentPage() {
                   {coverImageUrl ? (
                     <div className="mt-2 flex flex-col gap-2">
                       <div className="relative aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
-                        <img
+                        <Image
                           src={coverImageUrl}
                           alt="Cover preview"
-                          className="h-full w-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="180px"
+                          unoptimized={
+                            coverImageUrl.startsWith("data:") ||
+                            coverImageUrl.startsWith("blob:")
+                          }
                         />
                         <button
                           type="button"

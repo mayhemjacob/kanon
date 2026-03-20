@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { resizeDataUrl } from "@/lib/resize-image";
@@ -134,13 +135,20 @@ export default function EditPhotoPage() {
 
         <section className="space-y-6">
           <div className="flex flex-col items-center space-y-2">
-            <div className="h-24 w-24 overflow-hidden rounded-full bg-zinc-200">
+            <div className="relative h-24 w-24 overflow-hidden rounded-full bg-zinc-200">
               {previewImage && !imageError ? (
-                <img
+                <Image
                   src={previewImage}
                   alt=""
+                  width={96}
+                  height={96}
                   className="h-full w-full object-cover"
+                  sizes="96px"
                   onError={() => setImageError(true)}
+                  unoptimized={
+                    previewImage.startsWith("data:") ||
+                    previewImage.startsWith("blob:")
+                  }
                 />
               ) : null}
             </div>

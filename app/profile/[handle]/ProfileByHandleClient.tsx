@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -118,9 +119,20 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
           </button>
         </div>
         <header className="text-center space-y-2">
-          <div className="mx-auto h-20 w-20 rounded-full overflow-hidden bg-zinc-200">
+          <div className="relative mx-auto h-20 w-20 overflow-hidden rounded-full bg-zinc-200">
             {initialProfile.image ? (
-              <img src={initialProfile.image} alt="" className="h-full w-full object-cover" />
+              <Image
+                src={initialProfile.image}
+                alt=""
+                width={80}
+                height={80}
+                className="h-full w-full object-cover"
+                sizes="80px"
+                unoptimized={
+                  initialProfile.image.startsWith("data:") ||
+                  initialProfile.image.startsWith("blob:")
+                }
+              />
             ) : null}
           </div>
           <div className="text-sm font-semibold">{initialProfile.handle}</div>
@@ -281,11 +293,16 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
                 >
                   <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-300">
                     {card.imageUrl ? (
-                      <img
+                      <Image
                         src={card.imageUrl}
                         alt=""
-                        loading="lazy"
-                        className="h-full w-full object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 45vw, 320px"
+                        unoptimized={
+                          card.imageUrl.startsWith("data:") ||
+                          card.imageUrl.startsWith("blob:")
+                        }
                       />
                     ) : null}
                     <div className="pointer-events-none absolute inset-0 flex items-start justify-between p-1.5">
