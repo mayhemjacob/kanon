@@ -1,22 +1,39 @@
+function isSameLocalCalendarDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+/** e.g. "March 18, 2026" */
+function formatEnglishLongDate(d: Date): string {
+  return d.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 /**
- * Returns a human-readable relative time string (e.g. "2h ago", "3d ago").
- * For older dates, returns locale date string.
+ * Review timestamp for cards: same calendar day → relative ("3h ago");
+ * otherwise → absolute date in English ("March 18, 2026").
  */
 export function formatTimeAgo(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
   const now = new Date();
+
+  if (!isSameLocalCalendarDay(d, now)) {
+    return formatEnglishLongDate(d);
+  }
+
   const diffMs = now.getTime() - d.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  const diffWeeks = Math.floor(diffDays / 7);
 
-  if (diffMins < 1) return "just now";
+  if (diffMins < 1) return "Just now";
   if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffWeeks < 4) return `${diffWeeks}w ago`;
-  return d.toLocaleDateString();
+  return `${diffHours}h ago`;
 }
 
 /**

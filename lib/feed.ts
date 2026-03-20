@@ -1,24 +1,13 @@
-import { prisma } from "@/lib/prisma";
 import type { HomeReview } from "@/app/HomePageClient";
 import type { ItemStatus } from "@/app/api/items/status/route";
+import { formatTimeAgo } from "@/lib/date";
+import { prisma } from "@/lib/prisma";
 
 /** First-load batch size for `/api/feed` (no load-more yet). */
 const HOME_FEED_INITIAL_LIMIT = 15;
 
 /** Max characters for home-card body preview (matches Home card line-clamp behavior). */
 const HOME_BODY_PREVIEW_CHARS = 120;
-
-function timeAgo(from: Date): string {
-  const diffMs = Date.now() - from.getTime();
-  const sec = Math.floor(diffMs / 1000);
-  if (sec < 60) return "Just now";
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hrs = Math.floor(min / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 type FeedRow = {
   id: string;
@@ -103,7 +92,7 @@ export async function getHomeFeed(
       itemImageUrl: row.item_imageurl ?? null,
       title: row.item_title,
       body: row.body ?? null,
-      timeAgo: timeAgo(row.createdAt),
+      timeAgo: formatTimeAgo(row.createdAt),
       createdAt: row.createdAt,
       year: row.item_year ?? null,
     };

@@ -1,7 +1,11 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { formatTimeAgo } from "@/lib/date";
 import { HomePageClient, type HomeReview } from "./HomePageClient";
+
+const offlineCreated1 = new Date(Date.now() - 2 * 60 * 60 * 1000);
+const offlineCreated2 = new Date(Date.now() - 5 * 60 * 60 * 1000);
 
 const offlineReviews: HomeReview[] = [
   {
@@ -16,8 +20,8 @@ const offlineReviews: HomeReview[] = [
     title: "Dune: Part Two",
     tags: ["Sci-Fi", "Adventure", "Drama"],
     body: "Visually stunning. Made me feel small in the best way possible.",
-    timeAgo: "2h ago",
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    timeAgo: formatTimeAgo(offlineCreated1),
+    createdAt: offlineCreated1,
     year: 2024,
   },
   {
@@ -32,8 +36,8 @@ const offlineReviews: HomeReview[] = [
     title: "The Bear",
     tags: ["Drama", "Comedy", "Contemporary"],
     body: "Intense and beautiful. Every frame felt like controlled chaos.",
-    timeAgo: "5h ago",
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+    timeAgo: formatTimeAgo(offlineCreated2),
+    createdAt: offlineCreated2,
     year: 2023,
   },
 ];

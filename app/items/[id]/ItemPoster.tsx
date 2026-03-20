@@ -29,7 +29,6 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   /** Object URL for previewing selectedFile; revoked when replaced or cleared. */
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
-  const [urlInput, setUrlInput] = useState(initialImageUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
@@ -42,7 +41,6 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
       revokeIfBlob(prev);
       return null;
     });
-    setUrlInput(initialImageUrl ?? "");
   }, [itemId]);
 
   // After save, refresh can briefly send null — keep showing the image until server sends a URL again
@@ -56,8 +54,7 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
     return () => revokeIfBlob(filePreviewUrl);
   }, [filePreviewUrl]);
 
-  const previewImage =
-    filePreviewUrl || (urlInput.trim() || null) || imageUrl;
+  const previewImage = filePreviewUrl || imageUrl;
 
   function openModal() {
     setModalOpen(true);
@@ -67,7 +64,6 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
       revokeIfBlob(prev);
       return null;
     });
-    setUrlInput(imageUrl ?? "");
     setError(null);
     setImageError(false);
   }
@@ -75,7 +71,6 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUrlInput("");
     setFilePreviewUrl((prev) => {
       revokeIfBlob(prev);
       return URL.createObjectURL(file);
@@ -95,34 +90,37 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60_000);
 
-      if (selectedFile) {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        formData.append("itemId", itemId);
-
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-          signal: controller.signal,
-        });
-
-        if (!uploadRes.ok) {
-          const data = await uploadRes.json().catch(() => null);
-          clearTimeout(timeoutId);
-          setError(data?.error || "Could not upload photo.");
-          return;
-        }
-
-        const uploadJson = (await uploadRes.json()) as { url?: string };
-        if (!uploadJson.url || typeof uploadJson.url !== "string") {
-          clearTimeout(timeoutId);
-          setError("Upload did not return a URL.");
-          return;
-        }
-        nextImage = uploadJson.url;
-      } else {
-        nextImage = urlInput.trim() || null;
+      if (!selectedFile) {
+        clearTimeout(timeoutId);
+        setError("Choose a photo to upload first.");
+        setSaving(false);
+        return;
       }
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("itemId", itemId);
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+
+      if (!uploadRes.ok) {
+        const data = await uploadRes.json().catch(() => null);
+        clearTimeout(timeoutId);
+        setError(data?.error || "Could not upload photo.");
+        return;
+      }
+
+      const uploadJson = (await uploadRes.json()) as { url?: string };
+      if (!uploadJson.url || typeof uploadJson.url !== "string") {
+        clearTimeout(timeoutId);
+        setError("Upload did not return a URL.");
+        return;
+      }
+      nextImage = uploadJson.url;
 
       const res = await fetch(`/api/items/${itemId}`, {
         method: "PATCH",
@@ -225,7 +223,7 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
 
             {imageUrl && (
               <p className="mb-3 text-xs text-zinc-500">
-                Replace the cover by uploading a new photo or pasting a new URL below.
+                Replace the cover by uploading a new photo below.
               </p>
             )}
 
@@ -233,12 +231,15 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={saving}
-              className="mb-3 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-zinc-900 text-sm font-medium text-white"
+              className="mb-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-zinc-900 px-3 py-2.5 text-sm font-medium text-white"
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
               </svg>
-              Upload Photo
+              <span className="text-center leading-snug md:hidden">
+                Take a picture or upload media
+              </span>
+              <span className="hidden md:inline">Upload Image</span>
             </button>
             <input
               ref={fileInputRef}
@@ -247,25 +248,6 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
               className="hidden"
               onChange={onFileChange}
             />
-
-            <div className="mb-3">
-              <input
-                type="url"
-                value={urlInput}
-                onChange={(e) => {
-                  setUrlInput(e.target.value);
-                  setSelectedFile(null);
-                  setFilePreviewUrl((prev) => {
-                    revokeIfBlob(prev);
-                    return null;
-                  });
-                  setError(null);
-                }}
-                placeholder="Or paste image URL"
-                disabled={saving}
-                className="w-full rounded-2xl border border-zinc-200 px-4 py-2.5 text-sm outline-none focus:border-zinc-300 focus:ring-2 focus:ring-black/5 disabled:opacity-60 disabled:pointer-events-none"
-              />
-            </div>
 
             <div className="rounded-2xl bg-blue-50 px-3 py-3 text-xs text-blue-900 mb-4">
               Upload a high-quality cover image for {title}. The photo will be visible to all users.
@@ -280,7 +262,7 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
             <button
               type="button"
               onClick={onSavePhoto}
-              disabled={saving}
+              disabled={saving || !selectedFile}
               className="flex h-11 w-full items-center justify-center rounded-2xl bg-zinc-900 text-sm font-medium text-white disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save Photo"}

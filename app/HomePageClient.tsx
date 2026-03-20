@@ -543,9 +543,9 @@ export function HomePageClient({
 
                     <Link
                       href={`/items/${review.itemId}/reviews/${review.id}`}
-                      className="mt-4 grid grid-cols-[auto_1fr] gap-3 items-stretch rounded-lg hover:bg-zinc-50/80 -mx-1 px-1 transition-colors"
+                      className="mt-4 grid min-h-0 grid-cols-[auto_1fr] gap-3 items-stretch rounded-lg hover:bg-zinc-50/80 -mx-1 px-1 transition-colors"
                     >
-                      <div className="h-full overflow-hidden rounded-lg min-w-[4.5rem] w-20">
+                      <div className="flex min-h-0 w-20 min-w-[4.5rem] shrink-0 flex-col justify-start overflow-hidden rounded-lg">
                         <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-zinc-800">
                           {review.itemImageUrl ? (
                             <Image
@@ -567,40 +567,94 @@ export function HomePageClient({
                           </div>
                         </div>
                       </div>
-                      <div className="min-w-0">
-                        <h2 className="text-sm font-semibold text-gray-900">
-                          {review.title}
-                          {review.year != null && (
-                            <span className="text-gray-500"> ({review.year})</span>
-                          )}
-                        </h2>
-                        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
-                          {(review.tags ?? []).slice(0, 3).map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="mt-2 flex items-baseline gap-0">
-                          <span className="text-[32px] font-semibold leading-none tracking-tight tabular-nums text-zinc-900">
-                            {Math.floor(review.rating)}
-                          </span>
-                          {!Number.isInteger(review.rating) && (
-                            <span className="-ml-0.5 text-[17px] font-semibold leading-none tracking-tight tabular-nums text-zinc-900">
-                              .
-                              {Math.round(
-                                (review.rating - Math.floor(review.rating)) * 10,
+                      {review.body?.trim() ? (
+                        <div className="flex h-full min-h-0 min-w-0 w-full flex-col self-stretch overflow-hidden">
+                          <div className="flex min-w-0 shrink-0 flex-col gap-2">
+                            <h2 className="text-sm font-semibold text-gray-900">
+                              {review.title}
+                              {review.year != null && (
+                                <span className="text-gray-500"> ({review.year})</span>
                               )}
+                            </h2>
+                            {(review.tags ?? []).length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5 text-[10px]">
+                                {(review.tags ?? []).slice(0, 3).map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div
+                            className="min-h-0 min-w-0 flex-1 shrink basis-0"
+                            aria-hidden="true"
+                          />
+                          <div className="flex shrink-0 items-baseline gap-0">
+                            <span className="text-[32px] font-semibold leading-none tracking-tight tabular-nums text-zinc-900">
+                              {Math.floor(review.rating)}
                             </span>
-                          )}
+                            {!Number.isInteger(review.rating) && (
+                              <span className="-ml-0.5 text-[17px] font-semibold leading-none tracking-tight tabular-nums text-zinc-900">
+                                .
+                                {Math.round(
+                                  (review.rating - Math.floor(review.rating)) * 10,
+                                )}
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            className="min-h-0 min-w-0 flex-1 shrink basis-0"
+                            aria-hidden="true"
+                          />
+                          <p className="min-w-0 shrink-0 text-sm text-zinc-700 line-clamp-2">
+                            {review.body}
+                          </p>
                         </div>
-                        <p className="mt-3 text-sm text-zinc-700 line-clamp-2">
-                          {review.body}
-                        </p>
-                      </div>
+                      ) : (
+                        <div className="flex h-full min-h-0 min-w-0 w-full flex-col self-stretch overflow-hidden">
+                          <div className="flex min-w-0 shrink-0 flex-col gap-2">
+                            <h2 className="text-sm font-semibold text-gray-900">
+                              {review.title}
+                              {review.year != null && (
+                                <span className="text-gray-500"> ({review.year})</span>
+                              )}
+                            </h2>
+                            {(review.tags ?? []).length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5 text-[10px]">
+                                {(review.tags ?? []).slice(0, 3).map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                            <div className="flex shrink-0 items-baseline gap-0">
+                              <span className="text-[32px] font-semibold leading-none tracking-tight tabular-nums text-zinc-900">
+                                {Math.floor(review.rating)}
+                              </span>
+                              {!Number.isInteger(review.rating) && (
+                                <span className="-ml-0.5 text-[17px] font-semibold leading-none tracking-tight tabular-nums text-zinc-900">
+                                  .
+                                  {Math.round(
+                                    (review.rating - Math.floor(review.rating)) * 10,
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div
+                            className="min-h-0 min-w-0 flex-1 shrink basis-0"
+                            aria-hidden="true"
+                          />
+                        </div>
+                      )}
                     </Link>
                   </div>
                 </div>
