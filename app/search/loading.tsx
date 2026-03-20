@@ -1,7 +1,7 @@
 export default function SearchLoading() {
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8 pb-20">
+      <div className="mx-auto max-w-2xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-8 md:pb-8">
         <div className="h-8 w-32 rounded bg-zinc-200 animate-pulse" />
         <div className="mt-4 h-10 rounded-2xl bg-zinc-100 animate-pulse" />
         <div className="mt-4 flex gap-2">

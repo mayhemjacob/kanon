@@ -161,7 +161,7 @@ export function DiscoverPageClient({
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8 pb-20">
+      <div className="mx-auto max-w-2xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-8 md:pb-8">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
           Discover
         </h1>
