@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-import { computeTasteMatch, normalizeMatchHandle } from "@/lib/tasteMatch";
-import type { TasteMatchUserSnapshot } from "@/lib/tasteMatch";
-import { prisma } from "@/lib/prisma";
+import {
+  loadPublicMatch,
+  ogPersonLabel,
+} from "@/lib/tasteMatch/loadPublicMatch";
 
 import { MatchShareActions } from "./MatchShareActions";
 
@@ -43,39 +44,6 @@ function MatchAvatar({
   );
 }
 
-function toSnapshot(
-  row: {
-    id: string;
-    handle: string | null;
-    image: string | null;
-    reviews: {
-      rating: number;
-      item: {
-        id: string;
-        title: string;
-        type: string;
-        tags: string[];
-      };
-    }[];
-  },
-  handleFallback: string,
-): TasteMatchUserSnapshot {
-  return {
-    id: row.id,
-    handle: row.handle ?? handleFallback,
-    image: row.image,
-    reviews: row.reviews.map((r) => ({
-      rating: r.rating,
-      item: {
-        id: r.item.id,
-        title: r.item.title,
-        type: r.item.type,
-        tags: r.item.tags ?? [],
-      },
-    })),
-  };
-}
-
 type PageParams = { handleA: string; handleB: string };
 
 export async function generateMetadata({
@@ -84,17 +52,35 @@ export async function generateMetadata({
   params: Promise<PageParams>;
 }): Promise<Metadata> {
   const { handleA: rawA, handleB: rawB } = await params;
-  const a = normalizeMatchHandle(rawA);
-  const b = normalizeMatchHandle(rawB);
-  if (!a || !b || a === b) {
-    return { title: "Taste Match · Kanon" };
+  const data = await loadPublicMatch(rawA, rawB);
+
+  if (!data) {
+    return {
+      title: "Taste Match · Kanon",
+      description:
+        "Compare cultural compatibility and taste overlap with friends on Kanon.",
+    };
   }
+
+  const { rowA, rowB, handleA, handleB, tasteMatch } = data;
+  const pct = tasteMatch.compatibilityScore;
+  const titleA = ogPersonLabel(rowA, handleA);
+  const titleB = ogPersonLabel(rowB, handleB);
+  const title = `${titleA} & ${titleB} · Taste Match · Kanon`;
+  const description = `${titleA} and ${titleB}: ${pct}% cultural compatibility on Kanon. Compare taste in films, series, and books.`;
+
   return {
-    title: `@${a} & @${b} · Taste Match · Kanon`,
-    description: `Cultural compatibility and taste overlap between @${a} and @${b} on Kanon.`,
+    title,
+    description,
     openGraph: {
-      title: `@${a} & @${b} · Taste Match`,
-      description: `See how @${a} and @${b} align on Kanon.`,
+      title: `${titleA} & ${titleB} · Taste Match`,
+      description: `${pct}% cultural compatibility`,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${titleA} & ${titleB} · Taste Match`,
+      description: `${pct}% cultural compatibility on Kanon`,
     },
   };
 }
@@ -105,59 +91,14 @@ export default async function TasteMatchPublicPage({
   params: Promise<PageParams>;
 }) {
   const { handleA: rawA, handleB: rawB } = await params;
-  const a = normalizeMatchHandle(rawA);
-  const b = normalizeMatchHandle(rawB);
+  const data = await loadPublicMatch(rawA, rawB);
 
-  if (!a || !b || a === b) {
+  if (!data) {
     notFound();
   }
 
-  const [rowA, rowB] = await Promise.all([
-    prisma.user.findUnique({
-      where: { handle: a },
-      select: {
-        id: true,
-        handle: true,
-        image: true,
-        reviews: {
-          select: {
-            rating: true,
-            item: {
-              select: { id: true, title: true, type: true, tags: true },
-            },
-          },
-        },
-      },
-    }),
-    prisma.user.findUnique({
-      where: { handle: b },
-      select: {
-        id: true,
-        handle: true,
-        image: true,
-        reviews: {
-          select: {
-            rating: true,
-            item: {
-              select: { id: true, title: true, type: true, tags: true },
-            },
-          },
-        },
-      },
-    }),
-  ]);
-
-  if (!rowA || !rowB) {
-    notFound();
-  }
-
-  const tasteMatch = computeTasteMatch(
-    toSnapshot(rowA, a),
-    toSnapshot(rowB, b),
-  );
+  const { rowA, rowB, handleA, handleB, tasteMatch } = data;
   const pct = tasteMatch.compatibilityScore;
-  const handleA = rowA.handle ?? a;
-  const handleB = rowB.handle ?? b;
   const differenceHighlightLine = tasteMatch.biggestDifference
     ? `You disagree most on ${tasteMatch.biggestDifference.title}`
     : null;
