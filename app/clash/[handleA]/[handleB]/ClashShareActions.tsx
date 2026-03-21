@@ -53,12 +53,12 @@ type Props = {
 
 function copyTextToClipboard(text: string): Promise<boolean> {
   if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-    return legacyCopy(text);
+    return Promise.resolve(legacyCopy(text));
   }
   return navigator.clipboard
     .writeText(text)
     .then(() => true)
-    .catch(() => legacyCopy(text));
+    .catch(() => Promise.resolve(legacyCopy(text)));
 }
 
 function legacyCopy(text: string): boolean {
