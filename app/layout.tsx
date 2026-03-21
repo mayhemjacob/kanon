@@ -35,7 +35,8 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Kanon",
     description: "Share what you love. Discover films, shows, and books. Review, rate, and follow friends.",
-    images: ["/og-image.png"],
+    // Default OG image is set on `app/page.tsx` only. If we put `images` here, it merges
+    // onto child routes and crawlers (e.g. WhatsApp) often use the *first* og:image — the generic asset.
   },
 };
 

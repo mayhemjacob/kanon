@@ -1,8 +1,27 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { formatTimeAgo } from "@/lib/date";
 import { HomePageClient, type HomeReview } from "./HomePageClient";
+
+/** Home-only default share image (not inherited via root layout — avoids overriding Taste Match OG). */
+export const metadata: Metadata = {
+  openGraph: {
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Kanon",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/og-image.png"],
+  },
+};
 
 const offlineCreated1 = new Date(Date.now() - 2 * 60 * 60 * 1000);
 const offlineCreated2 = new Date(Date.now() - 5 * 60 * 60 * 1000);

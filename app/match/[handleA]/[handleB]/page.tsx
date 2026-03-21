@@ -68,6 +68,7 @@ export async function generateMetadata({
   const titleB = ogPersonLabel(rowB, handleB);
   const title = `${titleA} & ${titleB} · Taste Match · Kanon`;
   const description = `${titleA} and ${titleB}: ${pct}% cultural compatibility on Kanon. Compare taste in films, series, and books.`;
+  const ogImagePath = `/match/${encodeURIComponent(rawA)}/${encodeURIComponent(rawB)}/opengraph-image`;
 
   return {
     title,
@@ -76,11 +77,20 @@ export async function generateMetadata({
       title: `${titleA} & ${titleB} · Taste Match`,
       description: `${pct}% cultural compatibility`,
       type: "website",
+      images: [
+        {
+          url: ogImagePath,
+          width: 1200,
+          height: 630,
+          alt: `${titleA} and ${titleB} · ${pct}% · Taste Match`,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: `${titleA} & ${titleB} · Taste Match`,
       description: `${pct}% cultural compatibility on Kanon`,
+      images: [ogImagePath],
     },
   };
 }
