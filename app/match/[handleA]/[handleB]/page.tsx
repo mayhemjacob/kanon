@@ -1,18 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
-import { computeTasteClash, normalizeClashHandle } from "@/lib/tasteClash";
-import type { TasteClashUserSnapshot } from "@/lib/tasteClash";
+import { computeTasteMatch, normalizeMatchHandle } from "@/lib/tasteMatch";
+import type { TasteMatchUserSnapshot } from "@/lib/tasteMatch";
 import { prisma } from "@/lib/prisma";
 
-import { ClashShareActions } from "./ClashShareActions";
+import { MatchShareActions } from "./MatchShareActions";
 
 function imageNeedsUnoptimized(src: string): boolean {
   return src.startsWith("data:") || src.startsWith("blob:");
 }
 
-function ClashAvatar({
+function MatchAvatar({
   handle,
   imageUrl,
 }: {
@@ -58,7 +59,7 @@ function toSnapshot(
     }[];
   },
   handleFallback: string,
-): TasteClashUserSnapshot {
+): TasteMatchUserSnapshot {
   return {
     id: row.id,
     handle: row.handle ?? handleFallback,
@@ -75,14 +76,37 @@ function toSnapshot(
   };
 }
 
-export default async function TasteClashPublicPage({
+type PageParams = { handleA: string; handleB: string };
+
+export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ handleA: string; handleB: string }>;
+  params: Promise<PageParams>;
+}): Promise<Metadata> {
+  const { handleA: rawA, handleB: rawB } = await params;
+  const a = normalizeMatchHandle(rawA);
+  const b = normalizeMatchHandle(rawB);
+  if (!a || !b || a === b) {
+    return { title: "Taste Match · Kanon" };
+  }
+  return {
+    title: `@${a} & @${b} · Taste Match · Kanon`,
+    description: `Cultural compatibility and taste overlap between @${a} and @${b} on Kanon.`,
+    openGraph: {
+      title: `@${a} & @${b} · Taste Match`,
+      description: `See how @${a} and @${b} align on Kanon.`,
+    },
+  };
+}
+
+export default async function TasteMatchPublicPage({
+  params,
+}: {
+  params: Promise<PageParams>;
 }) {
   const { handleA: rawA, handleB: rawB } = await params;
-  const a = normalizeClashHandle(rawA);
-  const b = normalizeClashHandle(rawB);
+  const a = normalizeMatchHandle(rawA);
+  const b = normalizeMatchHandle(rawB);
 
   if (!a || !b || a === b) {
     notFound();
@@ -127,15 +151,15 @@ export default async function TasteClashPublicPage({
     notFound();
   }
 
-  const clash = computeTasteClash(
+  const tasteMatch = computeTasteMatch(
     toSnapshot(rowA, a),
     toSnapshot(rowB, b),
   );
-  const pct = clash.compatibilityScore;
+  const pct = tasteMatch.compatibilityScore;
   const handleA = rowA.handle ?? a;
   const handleB = rowB.handle ?? b;
-  const clashLineText = clash.biggestClash
-    ? `Your biggest clash is ${clash.biggestClash.title}`
+  const differenceHighlightLine = tasteMatch.biggestDifference
+    ? `You disagree most on ${tasteMatch.biggestDifference.title}`
     : null;
 
   return (
@@ -158,19 +182,18 @@ export default async function TasteClashPublicPage({
 
         <article className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-8 shadow-sm sm:px-8 sm:py-10">
           <div className="relative mb-8 flex items-start justify-between gap-2 sm:mb-10">
-            {/* Fin línea horizontal: no llega a los avatares (hueco a los lados) */}
             <div
               className="pointer-events-none absolute left-[14%] right-[14%] top-8 z-0 h-px -translate-y-1/2 bg-zinc-200 sm:left-[18%] sm:right-[18%] sm:top-10"
               aria-hidden
             />
             <div className="relative z-[1] flex min-w-0 flex-1 flex-col items-center gap-2.5">
-              <ClashAvatar handle={handleA} imageUrl={rowA.image} />
+              <MatchAvatar handle={handleA} imageUrl={rowA.image} />
               <span className="max-w-full truncate px-1 text-center text-sm font-bold text-zinc-900 sm:text-[15px]">
                 @{handleA}
               </span>
             </div>
             <div className="relative z-[1] flex min-w-0 flex-1 flex-col items-center gap-2.5">
-              <ClashAvatar handle={handleB} imageUrl={rowB.image} />
+              <MatchAvatar handle={handleB} imageUrl={rowB.image} />
               <span className="max-w-full truncate px-1 text-center text-sm font-bold text-zinc-900 sm:text-[15px]">
                 @{handleB}
               </span>
@@ -192,11 +215,11 @@ export default async function TasteClashPublicPage({
           <hr className="my-8 border-zinc-100 sm:my-10" />
 
           <ul className="space-y-3 text-[15px] leading-relaxed text-zinc-700 sm:text-base">
-            {clash.insightLines.map((line, i) => (
+            {tasteMatch.insightLines.map((line, i) => (
               <li
                 key={i}
                 className={`flex gap-2 ${
-                  clashLineText && line === clashLineText
+                  differenceHighlightLine && line === differenceHighlightLine
                     ? "font-semibold text-zinc-900"
                     : ""
                 }`}
@@ -210,13 +233,13 @@ export default async function TasteClashPublicPage({
             ))}
           </ul>
 
-          {clash.nudge ? (
+          {tasteMatch.nudge ? (
             <p className="mt-6 text-center text-xs leading-relaxed text-zinc-500 sm:text-sm">
-              {clash.nudge}
+              {tasteMatch.nudge}
             </p>
           ) : null}
 
-          <ClashShareActions
+          <MatchShareActions
             handleA={handleA}
             handleB={handleB}
             compatibilityScore={pct}

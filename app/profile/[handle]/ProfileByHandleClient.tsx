@@ -29,7 +29,7 @@ export type ProfileData = {
   /** Logged-in viewer is this profile (e.g. arrived from a review link to own handle). */
   isOwnProfile: boolean;
   /**
-   * Logged-in viewer's handle slug (no @) for Taste Clash URL; null if not signed in
+   * Logged-in viewer's handle slug (no @) for Taste Match URL; null if not signed in
    * or handle not set yet.
    */
   viewerHandleSlug: string | null;
@@ -181,10 +181,10 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
               </button>
               {initialProfile.viewerHandleSlug ? (
                 <Link
-                  href={`/clash/${encodeURIComponent(initialProfile.viewerHandleSlug)}/${encodeURIComponent(initialProfile.handle.replace(/^@/, ""))}`}
+                  href={`/match/${encodeURIComponent(initialProfile.viewerHandleSlug)}/${encodeURIComponent(initialProfile.handle.replace(/^@/, ""))}`}
                   className="flex w-full items-center justify-center rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50"
                 >
-                  Taste Clash
+                  Taste Match
                 </Link>
               ) : null}
             </div>

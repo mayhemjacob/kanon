@@ -79,7 +79,7 @@ function legacyCopy(text: string): boolean {
   }
 }
 
-export function ClashShareActions({
+export function MatchShareActions({
   handleA,
   handleB,
   compatibilityScore,
@@ -87,7 +87,6 @@ export function ClashShareActions({
   const [copyButtonLabel, setCopyButtonLabel] = useState<"copy" | "copied">(
     "copy",
   );
-  /** Solo mostrar Share cuando el SO/navegador ofrece compartir de verdad (p. ej. móvil) */
   const [showNativeShare, setShowNativeShare] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
 
@@ -105,24 +104,23 @@ export function ClashShareActions({
       return;
     }
     const href = window.location.href;
-    const title = `Taste clash: @${handleA} & @${handleB}`;
+    const title = `Taste match: @${handleA} & @${handleB}`;
     const text = `@${handleA} and @${handleB} — ${compatibilityScore}% cultural compatibility on Kanon`;
     const data: ShareData = { title, text, url: href };
     if (typeof navigator.canShare === "function") {
       setShowNativeShare(navigator.canShare(data));
     } else {
-      // Navegadores antiguos con share pero sin canShare (p. ej. Safari iOS viejo)
       setShowNativeShare(true);
     }
   }, [handleA, handleB, compatibilityScore]);
 
-  const copyLink = useCallback(async () => {
+  const copyMatchLink = useCallback(async () => {
     const href =
       typeof window !== "undefined" ? window.location.href : "";
     if (!href) return;
     const markCopySuccess = () => {
       setCopyButtonLabel("copied");
-      setTimedStatus("Link copied to clipboard", 2000);
+      setTimedStatus("Match link copied to clipboard", 2000);
       window.setTimeout(() => setCopyButtonLabel("copy"), 2000);
     };
     const ok = await copyTextToClipboard(href);
@@ -130,11 +128,11 @@ export function ClashShareActions({
     else setTimedStatus("Could not copy link");
   }, [setTimedStatus]);
 
-  const shareClash = useCallback(async () => {
+  const shareMatch = useCallback(async () => {
     const href =
       typeof window !== "undefined" ? window.location.href : "";
     if (!href || typeof navigator.share !== "function") return;
-    const title = `Taste clash: @${handleA} & @${handleB}`;
+    const title = `Taste match: @${handleA} & @${handleB}`;
     const text = `@${handleA} and @${handleB} — ${compatibilityScore}% cultural compatibility on Kanon`;
     const payload: ShareData = { title, text, url: href };
     try {
@@ -142,7 +140,7 @@ export function ClashShareActions({
     } catch (err) {
       const name = err instanceof Error ? err.name : "";
       if (name === "AbortError") return;
-      setTimedStatus("Could not open share. Use Copy Link.");
+      setTimedStatus("Could not open share. Use Copy Match Link.");
     }
   }, [handleA, handleB, compatibilityScore, setTimedStatus]);
 
@@ -154,26 +152,26 @@ export function ClashShareActions({
         role="group"
         aria-label={
           showNativeShare
-            ? "Copy or share this clash"
-            : "Copy link to this clash"
+            ? "Copy or share this taste match"
+            : "Copy taste match link"
         }
       >
         <button
           type="button"
-          onClick={copyLink}
+          onClick={copyMatchLink}
           className="inline-flex h-11 min-w-[8.5rem] items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-900 shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
         >
           <LinkIcon className="shrink-0 text-zinc-600" />
-          {copyButtonLabel === "copied" ? "Copied!" : "Copy Link"}
+          {copyButtonLabel === "copied" ? "Copied!" : "Copy Match Link"}
         </button>
         {showNativeShare ? (
           <button
             type="button"
-            onClick={() => void shareClash()}
+            onClick={() => void shareMatch()}
             className="inline-flex h-11 min-w-[8.5rem] items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition-colors hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
           >
             <ShareIcon className="shrink-0 text-white" />
-            Share Clash
+            Share Match
           </button>
         ) : null}
       </div>

@@ -1,8 +1,8 @@
 import type {
-  TasteClashBiggestClash,
-  TasteClashOverlapLevel,
-  TasteClashResult,
-  TasteClashUserSnapshot,
+  TasteMatchBiggestDifference,
+  TasteMatchOverlapLevel,
+  TasteMatchResult,
+  TasteMatchUserSnapshot,
 } from "./types";
 
 const RATING_SCALE = 10;
@@ -20,19 +20,19 @@ function mean(nums: number[]): number {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
-function overlapLevelFromCount(n: number): TasteClashOverlapLevel {
+function overlapLevelFromCount(n: number): TasteMatchOverlapLevel {
   if (n <= 2) return "low";
   if (n <= 6) return "medium";
   return "high";
 }
 
 type SharedRow = {
-  item: TasteClashUserSnapshot["reviews"][0]["item"];
+  item: TasteMatchUserSnapshot["reviews"][0]["item"];
   ra: number;
   rb: number;
 };
 
-function buildSharedRows(a: TasteClashUserSnapshot, b: TasteClashUserSnapshot): SharedRow[] {
+function buildSharedRows(a: TasteMatchUserSnapshot, b: TasteMatchUserSnapshot): SharedRow[] {
   const byItem = new Map<string, { rating: number; item: SharedRow["item"] }>();
   for (const r of a.reviews) {
     byItem.set(r.item.id, { rating: r.rating, item: r.item });
@@ -56,7 +56,7 @@ function compatibilityFromShared(shared: SharedRow[]): number {
   return Math.round(Math.min(100, Math.max(0, raw)));
 }
 
-function postureLine(a: TasteClashUserSnapshot, b: TasteClashUserSnapshot): string | null {
+function postureLine(a: TasteMatchUserSnapshot, b: TasteMatchUserSnapshot): string | null {
   const ra = a.reviews.map((r) => r.rating);
   const rb = b.reviews.map((r) => r.rating);
   if (ra.length === 0 || rb.length === 0) return null;
@@ -138,7 +138,7 @@ function agreeSoftLine(shared: SharedRow[]): string | null {
   return null;
 }
 
-function computeBiggestClash(shared: SharedRow[]): TasteClashBiggestClash | null {
+function computeBiggestDifference(shared: SharedRow[]): TasteMatchBiggestDifference | null {
   if (shared.length === 0) return null;
   let best: SharedRow | null = null;
   let bestDiff = -1;
@@ -163,12 +163,12 @@ function computeBiggestClash(shared: SharedRow[]): TasteClashBiggestClash | null
 }
 
 function startingOutLine(sharedCount: number): string | null {
-  if (sharedCount === 0) return "You've only just started shaping this clash";
+  if (sharedCount === 0) return "You've only just started shaping this taste match";
   return null;
 }
 
 /**
- * Build up to 4 insight lines. Order: posture → tag/type → loved/agree → clash (if shared).
+ * Build up to 4 insight lines. Order: posture → tag/type → loved/agree → largest difference (if shared).
  * Then data-backed fallbacks only until 4 lines.
  */
 function buildInsightLines(input: {
@@ -177,7 +177,7 @@ function buildInsightLines(input: {
   typeLine: string | null;
   lovedLine: string | null;
   agreeLine: string | null;
-  clash: TasteClashBiggestClash | null;
+  biggestDifference: TasteMatchBiggestDifference | null;
   sharedCount: number;
 }): string[] {
   const ordered: string[] = [];
@@ -187,8 +187,11 @@ function buildInsightLines(input: {
   if (input.lovedLine) ordered.push(input.lovedLine);
   else if (input.agreeLine) ordered.push(input.agreeLine);
   if (input.sharedCount > 0) {
-    if (input.clash) ordered.push(`Your biggest clash is ${input.clash.title}`);
-    else ordered.push("No sharp disagreements on shared titles yet");
+    if (input.biggestDifference) {
+      ordered.push(`You disagree most on ${input.biggestDifference.title}`);
+    } else {
+      ordered.push("No sharp disagreements on shared titles yet");
+    }
   }
 
   const seen = new Set<string>();
@@ -221,12 +224,12 @@ function buildInsightLines(input: {
 }
 
 /**
- * Pure Taste Clash computation (no I/O). Callers load Prisma rows into snapshots first.
+ * Pure Taste Match computation (no I/O). Callers load Prisma rows into snapshots first.
  */
-export function computeTasteClash(
-  userA: TasteClashUserSnapshot,
-  userB: TasteClashUserSnapshot,
-): TasteClashResult {
+export function computeTasteMatch(
+  userA: TasteMatchUserSnapshot,
+  userB: TasteMatchUserSnapshot,
+): TasteMatchResult {
   const shared = buildSharedRows(userA, userB);
   const sharedCount = shared.length;
   const compatibilityScore = compatibilityFromShared(shared);
@@ -237,7 +240,7 @@ export function computeTasteClash(
   const typeLine = typeDominanceLine(shared);
   const lovedLine = bothLovedLine(shared);
   const agreeLine = agreeSoftLine(shared);
-  const biggestClash = computeBiggestClash(shared);
+  const biggestDifference = computeBiggestDifference(shared);
 
   let insightLines = buildInsightLines({
     posture,
@@ -245,20 +248,22 @@ export function computeTasteClash(
     typeLine,
     lovedLine,
     agreeLine,
-    clash: biggestClash,
+    biggestDifference,
     sharedCount,
   });
 
   if (insightLines.length === 0) {
     const start = startingOutLine(sharedCount);
-    insightLines = start ? [start] : ["This clash will grow as you both rate more"];
+    insightLines = start
+      ? [start]
+      : ["This taste match will grow as you both rate more"];
   }
 
   insightLines = insightLines.slice(0, 4);
 
   const nudge =
     sharedCount <= 2
-      ? "Add more films, series, and books to sharpen the clash."
+      ? "Add more films, series, and books to sharpen your taste match."
       : null;
 
   return {
@@ -274,7 +279,7 @@ export function computeTasteClash(
     sharedCount,
     overlapLevel,
     insightLines,
-    biggestClash,
+    biggestDifference,
     nudge,
   };
 }

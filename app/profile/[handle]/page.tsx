@@ -90,7 +90,7 @@ export default async function ProfileByHandlePage({
         })
       : null;
 
-  /** Slug for /clash/[viewer]/[viewed]; null if guest or viewer has no handle yet */
+  /** Slug for /match/[viewer]/[viewed]; null if guest or viewer has no handle yet */
   const viewerHandleSlug = viewerHandleRow?.handle ?? null;
 
   const profile: ProfileData = {
