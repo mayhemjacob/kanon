@@ -2,6 +2,8 @@ import type { HomeReview } from "@/app/HomePageClient";
 import type { ItemStatus } from "@/app/api/items/status/route";
 import { formatTimeAgo } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
+
 
 /** First-load batch size for `/api/feed` (no load-more yet). */
 const HOME_FEED_INITIAL_LIMIT = 15;
@@ -28,18 +30,20 @@ type FeedRow = {
   my_review_id: string | null;
 };
 
-export async function getHomeFeed(
-  userId: string
-): Promise<{ reviews: HomeReview[]; initialStatus: Record<string, ItemStatus> }> {
-  /*
-   * Home feed (single round-trip, no N+1):
-   * - Restrict to reviews whose author is someone the viewer follows via INNER JOIN Follow
-   *   (same as WHERE userId IN (SELECT followingId ...), often friendlier to the planner).
-   * - ORDER BY + LIMIT use @@index([userId, createdAt(sort: Desc)]) on Review for
-   *   bitmap/merge plans over followees; Follow rows are found via @@unique([followerId, followingId]).
-   * - SavedItem / self-join Review use @@unique([userId, itemId]) on those tables.
-   */
-  const rows = await prisma.$queryRaw<FeedRow[]>`
+export const getHomeFeed = unstable_cache(
+  async (
+    userId: string
+  ): Promise<{ reviews: HomeReview[]; initialStatus: Record<string, ItemStatus> }> => {
+    /*
+     * Home feed (single round-trip, no N+1):
+     * - Restrict to reviews whose author is someone the viewer follows via INNER JOIN Follow
+     *   (same as WHERE userId IN (SELECT followingId ...), often friendlier to the planner).
+     * - ORDER BY + LIMIT use @@index([userId, createdAt(sort: Desc)]) on Review for
+     *   bitmap/merge plans over followees; Follow rows are found via @@unique([followerId, followingId]).
+     * - SavedItem / self-join Review use @@unique([userId, itemId]) on those tables.
+     */
+    console.log({ getting: true })
+    const rows = await prisma.$queryRaw<FeedRow[]>`
     SELECT
       r.id,
       r."itemId",
@@ -73,37 +77,39 @@ export async function getHomeFeed(
     LIMIT ${HOME_FEED_INITIAL_LIMIT}
   `;
 
-  const reviews: HomeReview[] = [];
-  const initialStatus: Record<string, ItemStatus> = {};
+    const reviews: HomeReview[] = [];
+    const initialStatus: Record<string, ItemStatus> = {};
 
-  for (const row of rows) {
-    const handle = row.user_handle ?? row.user_name ?? row.user_email ?? "user";
-    const userName = handle.startsWith("@") ? handle.slice(1) : handle;
-    const avatarInitial = (userName[0] ?? row.user_email?.[0] ?? "U").toUpperCase();
+    for (const row of rows) {
+      const handle = row.user_handle ?? row.user_name ?? row.user_email ?? "user";
+      const userName = handle.startsWith("@") ? handle.slice(1) : handle;
+      const avatarInitial = (userName[0] ?? row.user_email?.[0] ?? "U").toUpperCase();
 
-    const review: HomeReview = {
-      id: row.id,
-      itemId: row.itemId,
-      userName,
-      avatarInitial,
-      userImage: row.user_image ?? null,
-      rating: row.rating,
-      itemType: row.item_type as "FILM" | "SHOW" | "BOOK",
-      itemImageUrl: row.item_imageurl ?? null,
-      title: row.item_title,
-      body: row.body ?? null,
-      timeAgo: formatTimeAgo(row.createdAt),
-      createdAt: row.createdAt,
-      year: row.item_year ?? null,
-    };
-    reviews.push(review);
+      const review: HomeReview = {
+        id: row.id,
+        itemId: row.itemId,
+        userName,
+        avatarInitial,
+        userImage: row.user_image ?? null,
+        rating: row.rating,
+        itemType: row.item_type as "FILM" | "SHOW" | "BOOK",
+        itemImageUrl: row.item_imageurl ?? null,
+        title: row.item_title,
+        body: row.body ?? null,
+        timeAgo: formatTimeAgo(row.createdAt),
+        createdAt: row.createdAt,
+        year: row.item_year ?? null,
+      };
+      reviews.push(review);
 
-    initialStatus[row.itemId] = {
-      saved: !!row.saved,
-      reviewed: !!row.reviewed,
-      ...(row.my_review_id && { reviewId: row.my_review_id }),
-    };
-  }
+      initialStatus[row.itemId] = {
+        saved: !!row.saved,
+        reviewed: !!row.reviewed,
+        ...(row.my_review_id && { reviewId: row.my_review_id }),
+      };
+    }
 
-  return { reviews, initialStatus };
-}
+    return { reviews, initialStatus };
+  },
+  ["feed"],
+  { revalidate: 10 })

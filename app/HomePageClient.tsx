@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 type ItemStatus = { saved: boolean; reviewed: boolean; reviewId?: string };
 
@@ -43,96 +43,55 @@ function imageNeedsUnoptimized(src: string): boolean {
   return src.startsWith("data:") || src.startsWith("blob:");
 }
 
-function FeedSkeleton() {
-  return (
-    <section className="space-y-4 pb-20">
-      {[1, 2, 3].map((i) => (
-        <article key={i} className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
-          <div className="flex items-start gap-3">
-            <div className="h-9 w-9 shrink-0 rounded-full bg-zinc-200 animate-pulse" />
-            <div className="flex-1 space-y-2">
-              <div className="flex justify-between">
-                <div className="space-y-1">
-                  <div className="h-3 w-16 rounded bg-zinc-200 animate-pulse" />
-                  <div className="h-3 w-12 rounded bg-zinc-100 animate-pulse" />
-                </div>
-                <div className="flex gap-2">
-                  <div className="h-4 w-4 rounded bg-zinc-100 animate-pulse" />
-                  <div className="h-4 w-4 rounded bg-zinc-100 animate-pulse" />
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-[auto_1fr] gap-3">
-                <div className="aspect-[3/4] w-20 rounded-lg bg-zinc-200 animate-pulse" />
-                <div className="space-y-2">
-                  <div className="h-4 w-3/4 rounded bg-zinc-200 animate-pulse" />
-                  <div className="h-8 w-12 rounded bg-zinc-200 animate-pulse" />
-                  <div className="h-4 w-full rounded bg-zinc-100 animate-pulse" />
-                  <div className="h-4 w-4/5 rounded bg-zinc-100 animate-pulse" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
-      ))}
-    </section>
-  );
-}
+// function FeedSkeleton() {
+//   return (
+//     <section className="space-y-4 pb-20">
+//       {[1, 2, 3].map((i) => (
+//         <article key={i} className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
+//           <div className="flex items-start gap-3">
+//             <div className="h-9 w-9 shrink-0 rounded-full bg-zinc-200 animate-pulse" />
+//             <div className="flex-1 space-y-2">
+//               <div className="flex justify-between">
+//                 <div className="space-y-1">
+//                   <div className="h-3 w-16 rounded bg-zinc-200 animate-pulse" />
+//                   <div className="h-3 w-12 rounded bg-zinc-100 animate-pulse" />
+//                 </div>
+//                 <div className="flex gap-2">
+//                   <div className="h-4 w-4 rounded bg-zinc-100 animate-pulse" />
+//                   <div className="h-4 w-4 rounded bg-zinc-100 animate-pulse" />
+//                 </div>
+//               </div>
+//               <div className="mt-4 grid grid-cols-[auto_1fr] gap-3">
+//                 <div className="aspect-[3/4] w-20 rounded-lg bg-zinc-200 animate-pulse" />
+//                 <div className="space-y-2">
+//                   <div className="h-4 w-3/4 rounded bg-zinc-200 animate-pulse" />
+//                   <div className="h-8 w-12 rounded bg-zinc-200 animate-pulse" />
+//                   <div className="h-4 w-full rounded bg-zinc-100 animate-pulse" />
+//                   <div className="h-4 w-4/5 rounded bg-zinc-100 animate-pulse" />
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+//         </article>
+//       ))}
+//     </section>
+//   );
+// }
 
 export function HomePageClient({
-  reviews: initialReviews,
+  reviews,
   initialStatus = {},
 }: {
-  reviews?: HomeReview[];
-  initialStatus?: Record<string, ItemStatus>;
+  reviews: HomeReview[];
+  initialStatus: Record<string, ItemStatus>;
 }) {
-  const [reviews, setReviews] = useState<HomeReview[]>(initialReviews ?? []);
-  const [statusMap, setStatusMap] = useState<Record<string, ItemStatus>>(initialStatus);
-  const [loading, setLoading] = useState(typeof initialReviews === "undefined");
-  const [error, setError] = useState(false);
+  // Ya NO dependemos de initialReviews undefined
+  const [localReviews] = useState(reviews);
+  const [statusMap, setStatusMap] = useState(initialStatus);
 
-  useEffect(() => {
-    if (typeof initialReviews !== "undefined") return;
-    let cancelled = false;
-    setLoading(true);
-    setError(false);
-    fetch("/api/feed")
-      .then(async (res) => {
-        const text = await res.text();
-        if (!res.ok) {
-          throw new Error(`Feed HTTP ${res.status}`);
-        }
-        const trimmed = text.trim();
-        if (!trimmed) {
-          throw new Error("Empty feed response");
-        }
-        try {
-          return JSON.parse(trimmed) as {
-            reviews?: HomeReview[];
-            initialStatus?: Record<string, ItemStatus>;
-          };
-        } catch {
-          throw new Error("Invalid JSON from feed");
-        }
-      })
-      .then((data) => {
-        if (!cancelled) {
-          setReviews(data.reviews ?? []);
-          setStatusMap(data.initialStatus ?? {});
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [initialReviews]);
-
-  const effectiveReviews = typeof initialReviews !== "undefined" ? initialReviews : reviews;
   const router = useRouter();
+
+  // Tu lógica de filtros sigue igual
   const [activeType, setActiveType] = useState<TypeFilter>("All");
   const [selectedRatingBands, setSelectedRatingBands] =
     useState<Set<RatingFilterOption>>(new Set());
@@ -149,16 +108,10 @@ export function HomePageClient({
   };
 
   const filtered = useMemo(() => {
-    const list = effectiveReviews.filter((r) => {
-      if (activeType === "Films" && r.itemType !== "FILM") {
-        return false;
-      }
-      if (activeType === "Series" && r.itemType !== "SHOW") {
-        return false;
-      }
-      if (activeType === "Books" && r.itemType !== "BOOK") {
-        return false;
-      }
+    const list = localReviews.filter((r) => {
+      if (activeType === "Films" && r.itemType !== "FILM") return false;
+      if (activeType === "Series" && r.itemType !== "SHOW") return false;
+      if (activeType === "Books" && r.itemType !== "BOOK") return false;
 
       if (selectedRatingBands.size === 0) return true;
       return [...selectedRatingBands].some((band) =>
@@ -166,22 +119,16 @@ export function HomePageClient({
       );
     });
 
-    // Apply sort
     return [...list].sort((a, b) => {
       if (sortBy === "reviewDate") {
-        const aTime = new Date(a.createdAt).getTime();
-        const bTime = new Date(b.createdAt).getTime();
-        return bTime - aTime; // Newest first
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
       if (sortBy === "rating") {
-        return b.rating - a.rating; // Highest first
+        return b.rating - a.rating;
       }
-      // publicationYear - Newest first
-      const aYear = a.year ?? 0;
-      const bYear = b.year ?? 0;
-      return bYear - aYear;
+      return (b.year ?? 0) - (a.year ?? 0);
     });
-  }, [activeType, selectedRatingBands, effectiveReviews, sortBy]);
+  }, [activeType, selectedRatingBands, localReviews, sortBy]);
 
   const handleSaveToggle = useCallback(async (itemId: string) => {
     setStatusMap((prev) => ({
@@ -193,16 +140,14 @@ export function HomePageClient({
         reviewId: prev[itemId]?.reviewId,
       },
     }));
+
     try {
       const res = await fetch(`/api/items/${itemId}/save`, { method: "POST" });
       if (res.ok) {
-        const data = (await res.json().catch(() => null)) as
-          | { saved?: boolean }
-          | null;
-        if (!data || typeof data.saved !== "boolean") {
-          throw new Error("Invalid save response");
-        }
-        const savedNext: boolean = data.saved;
+        const data = await res.json().catch(() => null);
+        if (!data || typeof data.saved !== "boolean") throw new Error();
+        const savedNext = data.saved;
+
         setStatusMap((prev) => ({
           ...prev,
           [itemId]: {
@@ -213,17 +158,10 @@ export function HomePageClient({
           },
         }));
       } else {
-        setStatusMap((prev) => ({
-          ...prev,
-          [itemId]: {
-            ...prev[itemId],
-            saved: !(prev[itemId]?.saved ?? false),
-            reviewed: prev[itemId]?.reviewed ?? false,
-            reviewId: prev[itemId]?.reviewId,
-          },
-        }));
+        throw new Error();
       }
     } catch {
+      // revert
       setStatusMap((prev) => ({
         ...prev,
         [itemId]: {
@@ -236,60 +174,7 @@ export function HomePageClient({
     }
   }, []);
 
-  const hasAnyReviews = effectiveReviews.length > 0;
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-white">
-        <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
-          <header className="mb-6 sm:mb-8">
-            <div className="flex items-center justify-between">
-              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">For you</h1>
-              <div className="h-9 w-9 rounded-full bg-zinc-100 animate-pulse" />
-            </div>
-            <div className="mt-4 space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-7 w-14 rounded-full bg-zinc-100 animate-pulse" />
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <div className="h-4 w-12 rounded bg-zinc-100 animate-pulse" />
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                    <div key={i} className="h-6 w-6 rounded-full bg-zinc-100 animate-pulse" />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </header>
-          <FeedSkeleton />
-        </div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="min-h-screen bg-white">
-        <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
-          <header className="mb-6 sm:mb-8">
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">For you</h1>
-          </header>
-          <section className="flex flex-col items-center justify-center rounded-3xl bg-zinc-50 px-6 py-16 text-center">
-            <p className="text-sm text-zinc-600">Could not load your feed. Please try again.</p>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="mt-4 rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white"
-            >
-              Retry
-            </button>
-          </section>
-        </div>
-      </main>
-    );
-  }
+  const hasAnyReviews = localReviews.length > 0;
 
   return (
     <main className="min-h-screen bg-white">
