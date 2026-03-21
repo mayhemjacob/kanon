@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { formatReviewDate } from "@/lib/date";
 import { ReviewEditable } from "./ReviewEditable";
 import { ReviewPageActions } from "./ReviewPageActions";
+import { ReviewShareSection } from "./ReviewShareSection";
 
 function formatTimeAgo(date: Date): string {
   const now = new Date();
@@ -86,14 +87,13 @@ export default async function ItemReviewPage({
 }) {
   const { id: itemId, reviewId } = await params;
   const offline = process.env.NEXT_PUBLIC_OFFLINE_DEV === "1";
+  const session = await getServerSession(authOptions);
 
   let data: ReviewPageData | null = null;
 
   if (offline) {
     data = offlineReview;
   } else {
-    const session = await getServerSession(authOptions);
-
     const review = await prisma.review.findUnique({
       where: { id: reviewId },
       include: {
@@ -344,6 +344,15 @@ export default async function ItemReviewPage({
               </p>
             </div>
           </div>
+
+          {!offline && session?.user?.id ? (
+            <ReviewShareSection
+              reviewId={review.id}
+              itemTitle={item.title}
+              itemImageUrl={item.imageUrl ?? null}
+              rating={review.rating}
+            />
+          ) : null}
         </section>
       </div>
     </main>

@@ -23,12 +23,12 @@ model User {
   bio           String?
   hasOnboarded  Boolean   @default(false)
 
-  accounts    Account[]
-  sessions    Session[]
-  reviews     Review[]
-  savedItems  SavedItem[]
-  following   Follow[] @relation("FollowFollowing")
-  followers   Follow[] @relation("FollowFollowers")
+  accounts   Account[]
+  sessions   Session[]
+  reviews    Review[]
+  savedItems SavedItem[]
+  following  Follow[]    @relation("FollowFollowing")
+  followers  Follow[]    @relation("FollowFollowers")
 
   createdAt DateTime @default(now())
 }
@@ -83,18 +83,18 @@ model VerificationToken {
 }
 
 model Item {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   type        ItemType
   title       String
   year        Int?
   imageUrl    String?
   director    String?
   description String?
-  tags        String[]  @default([])
-  createdAt   DateTime  @default(now())
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
 
-  reviews    Review[]
-  savedBy    SavedItem[]
+  reviews Review[]
+  savedBy SavedItem[]
 
   @@index([createdAt(sort: Desc)])
 }
@@ -112,12 +112,14 @@ model SavedItem {
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  userId    String
-  itemId    String
-  rating    Float
-  body      String?
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String
+  itemId        String
+  rating        Float
+  body          String?
+  createdAt     DateTime @default(now())
+  /// Opaque id for public share URLs; null until assigned.
+  publicShareId String?  @unique
 
   user User @relation(fields: [userId], references: [id])
   item Item @relation(fields: [itemId], references: [id])
@@ -126,4 +128,3 @@ model Review {
   @@index([userId, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
 }
-

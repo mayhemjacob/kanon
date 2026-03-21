@@ -19,7 +19,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/";
 
   const hideNav =
-    pathname.startsWith("/login") || pathname.startsWith("/onboarding");
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/r/");
+
+  const publicShareChrome = pathname.startsWith("/r/");
 
   const otherUserProfile = isOtherUserProfile(pathname);
 
@@ -29,7 +33,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 md:h-dvh md:max-h-dvh md:overflow-hidden">
+    <div
+      className={`min-h-screen md:h-dvh md:max-h-dvh md:overflow-hidden ${
+        publicShareChrome ? "bg-white" : "bg-zinc-50"
+      }`}
+    >
       <div className="mx-auto flex max-w-5xl md:h-full md:min-h-0 md:px-6">
         {!hideNav && (
           <aside className="hidden w-56 shrink-0 border-r border-zinc-200 bg-white px-4 py-6 md:flex md:flex-col md:gap-6">

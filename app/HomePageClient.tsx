@@ -96,7 +96,24 @@ export function HomePageClient({
     setLoading(true);
     setError(false);
     fetch("/api/feed")
-      .then((res) => res.json())
+      .then(async (res) => {
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(`Feed HTTP ${res.status}`);
+        }
+        const trimmed = text.trim();
+        if (!trimmed) {
+          throw new Error("Empty feed response");
+        }
+        try {
+          return JSON.parse(trimmed) as {
+            reviews?: HomeReview[];
+            initialStatus?: Record<string, ItemStatus>;
+          };
+        } catch {
+          throw new Error("Invalid JSON from feed");
+        }
+      })
       .then((data) => {
         if (!cancelled) {
           setReviews(data.reviews ?? []);
@@ -179,12 +196,18 @@ export function HomePageClient({
     try {
       const res = await fetch(`/api/items/${itemId}/save`, { method: "POST" });
       if (res.ok) {
-        const data = await res.json();
+        const data = (await res.json().catch(() => null)) as
+          | { saved?: boolean }
+          | null;
+        if (!data || typeof data.saved !== "boolean") {
+          throw new Error("Invalid save response");
+        }
+        const savedNext: boolean = data.saved;
         setStatusMap((prev) => ({
           ...prev,
           [itemId]: {
             ...prev[itemId],
-            saved: data.saved,
+            saved: savedNext,
             reviewed: prev[itemId]?.reviewed ?? false,
             reviewId: prev[itemId]?.reviewId,
           },
