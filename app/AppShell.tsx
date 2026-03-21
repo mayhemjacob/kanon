@@ -21,9 +21,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const hideNav =
     pathname.startsWith("/login") ||
     pathname.startsWith("/onboarding") ||
-    pathname.startsWith("/r/");
+    pathname.startsWith("/r/") ||
+    pathname.startsWith("/clash/");
 
-  const publicShareChrome = pathname.startsWith("/r/");
+  const publicShareChrome =
+    pathname.startsWith("/r/") || pathname.startsWith("/clash/");
 
   const otherUserProfile = isOtherUserProfile(pathname);
 

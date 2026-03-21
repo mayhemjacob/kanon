@@ -28,6 +28,11 @@ export type ProfileData = {
   followingByMe: boolean;
   /** Logged-in viewer is this profile (e.g. arrived from a review link to own handle). */
   isOwnProfile: boolean;
+  /**
+   * Logged-in viewer's handle slug (no @) for Taste Clash URL; null if not signed in
+   * or handle not set yet.
+   */
+  viewerHandleSlug: string | null;
 };
 
 type Props = {
@@ -154,11 +159,19 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
             </Link>
           </div>
           {!initialProfile.isOwnProfile ? (
-            <div className="mt-4 flex justify-center">
+            <div
+              className={
+                initialProfile.viewerHandleSlug
+                  ? "mx-auto mt-4 grid max-w-sm grid-cols-2 gap-3 px-1"
+                  : "mt-4 flex justify-center"
+              }
+            >
               <button
                 type="button"
                 onClick={handleFollowToggle}
-                className={`rounded-full px-8 py-2.5 text-sm font-medium transition-colors ${
+                className={`rounded-full py-2.5 text-sm font-medium transition-colors ${
+                  initialProfile.viewerHandleSlug ? "w-full px-4" : "px-8"
+                } ${
                   following
                     ? "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                     : "bg-zinc-900 text-white hover:bg-zinc-800"
@@ -166,6 +179,14 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
               >
                 {following ? "Following" : "Follow"}
               </button>
+              {initialProfile.viewerHandleSlug ? (
+                <Link
+                  href={`/clash/${encodeURIComponent(initialProfile.viewerHandleSlug)}/${encodeURIComponent(initialProfile.handle.replace(/^@/, ""))}`}
+                  className="flex w-full items-center justify-center rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50"
+                >
+                  Taste Clash
+                </Link>
+              ) : null}
             </div>
           ) : null}
         </header>

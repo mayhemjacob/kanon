@@ -64,22 +64,27 @@ export default async function PublicSharedReviewPage({
   const username = displayName(user?.handle ?? null, user?.name ?? null);
 
   const rating = review.rating;
-  const ratingIsWhole = Number(rating) === Math.floor(rating);
-  const ratingStr = ratingIsWhole
-    ? String(rating)
-    : rating.toFixed(1);
-  const [wholePart, decimalPart] = ratingStr.split(".");
+  const ratingDisplay =
+    Number(rating) === Math.floor(rating)
+      ? String(rating)
+      : rating.toFixed(1);
 
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-2xl px-6 pb-16 pt-10 sm:px-8 sm:pt-12 md:max-w-3xl md:pb-20">
         {/* Kanon header */}
-        <header className="mb-10 border-b border-zinc-100 pb-6 text-center md:mb-12 md:text-left">
+        <header className="mb-10 flex items-center justify-between gap-4 border-b border-zinc-100 pb-6 md:mb-12">
           <Link
             href="/"
             className="text-lg font-semibold tracking-tight text-zinc-900 hover:text-zinc-700"
           >
             Kanon
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 sm:h-11 sm:px-6 sm:text-[15px]"
+          >
+            Join Kanon
           </Link>
         </header>
 
@@ -113,7 +118,7 @@ export default async function PublicSharedReviewPage({
         {/* Hero: cover + title / meta / rating */}
         <section className="mb-10 md:mb-12">
           <div className="flex flex-col gap-8 md:flex-row md:items-start md:gap-10">
-            <div className="mx-auto w-[min(100%,200px)] shrink-0 md:mx-0 md:w-[180px]">
+            <div className="mx-auto w-[min(100%,200px)] shrink-0 md:mx-0 md:w-[180px] md:shrink-0">
               <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-zinc-100 shadow-md">
                 {item.imageUrl ? (
                   <Image
@@ -129,9 +134,9 @@ export default async function PublicSharedReviewPage({
               </div>
             </div>
 
-            <div className="min-w-0 flex-1 space-y-5">
+            <div className="min-w-0 w-full space-y-5 md:w-[180px] md:shrink-0">
               <div>
-                <h1 className="text-2xl font-medium leading-tight tracking-tight text-zinc-900 sm:text-[26px] md:text-3xl">
+                <h1 className="text-2xl font-medium leading-tight tracking-tight text-zinc-900 sm:text-[26px] md:text-2xl md:leading-snug">
                   {item.title}
                 </h1>
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-zinc-500">
@@ -154,21 +159,10 @@ export default async function PublicSharedReviewPage({
                   Rating
                 </p>
                 <div className="rounded-2xl border border-zinc-100 bg-zinc-50 px-6 py-8">
-                  <div className="text-center leading-none">
-                    {ratingIsWhole ? (
-                      <span className="text-[42px] font-light tabular-nums text-zinc-900">
-                        {ratingStr}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-end justify-center">
-                        <span className="text-[42px] font-light tabular-nums text-zinc-900">
-                          {wholePart}
-                        </span>
-                        <span className="text-[22px] font-light tabular-nums text-zinc-900">
-                          .{decimalPart}
-                        </span>
-                      </span>
-                    )}
+                  <div className="text-center">
+                    <span className="text-[42px] font-light tabular-nums tracking-tight text-zinc-900">
+                      {ratingDisplay}
+                    </span>
                   </div>
                 </div>
               </div>

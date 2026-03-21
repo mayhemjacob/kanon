@@ -82,6 +82,17 @@ export default async function ProfileByHandlePage({
     session?.user?.id && session.user.id === targetUser.id
   );
 
+  const viewerHandleRow =
+    !isOwnProfile && session?.user?.id
+      ? await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { handle: true },
+        })
+      : null;
+
+  /** Slug for /clash/[viewer]/[viewed]; null if guest or viewer has no handle yet */
+  const viewerHandleSlug = viewerHandleRow?.handle ?? null;
+
   const profile: ProfileData = {
     handle: `@${targetUser.handle}`,
     bio: targetUser.bio ?? null,
@@ -91,6 +102,7 @@ export default async function ProfileByHandlePage({
     cards,
     followingByMe: !!followRow,
     isOwnProfile,
+    viewerHandleSlug,
   };
 
   return <ProfileByHandleClient profile={profile} />;
