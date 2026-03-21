@@ -6,11 +6,13 @@ import { computeTasteClash, normalizeClashHandle } from "@/lib/tasteClash";
 import type { TasteClashUserSnapshot } from "@/lib/tasteClash";
 import { prisma } from "@/lib/prisma";
 
+import { ClashShareActions } from "./ClashShareActions";
+
 function imageNeedsUnoptimized(src: string): boolean {
   return src.startsWith("data:") || src.startsWith("blob:");
 }
 
-function Avatar({
+function ClashAvatar({
   handle,
   imageUrl,
 }: {
@@ -18,20 +20,21 @@ function Avatar({
   imageUrl: string | null;
 }) {
   const initial = handle.charAt(0).toUpperCase() || "?";
+  const sizePx = 80;
   return (
-    <div className="relative z-[1] h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-white bg-zinc-200 shadow-sm sm:h-16 sm:w-16">
+    <div className="relative z-[2] h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white bg-zinc-200 shadow-sm ring-1 ring-zinc-100 sm:h-20 sm:w-20">
       {imageUrl ? (
         <Image
           src={imageUrl}
           alt=""
-          width={64}
-          height={64}
+          width={sizePx}
+          height={sizePx}
           className="h-full w-full object-cover"
-          sizes="64px"
+          sizes="80px"
           unoptimized={imageNeedsUnoptimized(imageUrl)}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-base font-semibold text-zinc-600 sm:text-lg">
+        <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-zinc-600 sm:text-xl">
           {initial}
         </div>
       )}
@@ -154,37 +157,36 @@ export default async function TasteClashPublicPage({
         </header>
 
         <article className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-8 shadow-sm sm:px-8 sm:py-10">
-          <div className="relative mb-8 flex items-center justify-between gap-2 sm:mb-10">
+          <div className="relative mb-8 flex items-start justify-between gap-2 sm:mb-10">
+            {/* Fin línea horizontal: no llega a los avatares (hueco a los lados) */}
             <div
-              className="pointer-events-none absolute left-[14%] right-[14%] top-1/2 z-0 h-px -translate-y-1/2 bg-zinc-200 sm:left-[18%] sm:right-[18%]"
+              className="pointer-events-none absolute left-[14%] right-[14%] top-8 z-0 h-px -translate-y-1/2 bg-zinc-200 sm:left-[18%] sm:right-[18%] sm:top-10"
               aria-hidden
             />
-            <div className="relative z-[1] flex flex-1 flex-col items-center gap-2">
-              <Avatar handle={handleA} imageUrl={rowA.image} />
-              <span className="max-w-[7rem] truncate text-center text-sm font-medium text-zinc-900">
+            <div className="relative z-[1] flex min-w-0 flex-1 flex-col items-center gap-2.5">
+              <ClashAvatar handle={handleA} imageUrl={rowA.image} />
+              <span className="max-w-full truncate px-1 text-center text-sm font-bold text-zinc-900 sm:text-[15px]">
                 @{handleA}
               </span>
             </div>
-            <div className="relative z-[1] flex flex-1 flex-col items-center gap-2">
-              <Avatar handle={handleB} imageUrl={rowB.image} />
-              <span className="max-w-[7rem] truncate text-center text-sm font-medium text-zinc-900">
+            <div className="relative z-[1] flex min-w-0 flex-1 flex-col items-center gap-2.5">
+              <ClashAvatar handle={handleB} imageUrl={rowB.image} />
+              <span className="max-w-full truncate px-1 text-center text-sm font-bold text-zinc-900 sm:text-[15px]">
                 @{handleB}
               </span>
             </div>
           </div>
 
           <div className="text-center">
-            <p className="text-5xl font-semibold tabular-nums tracking-tight text-zinc-900 sm:text-6xl">
+            <p className="text-5xl font-bold tabular-nums tracking-tight text-zinc-900 sm:text-6xl">
               {pct}%
             </p>
-            <p className="mx-auto mt-4 max-w-sm text-pretty text-[15px] leading-relaxed text-zinc-600 sm:text-base">
-              <span className="font-semibold text-zinc-900">@{handleA}</span>{" "}
-              and{" "}
-              <span className="font-semibold text-zinc-900">@{handleB}</span>{" "}
-              have{" "}
-              <span className="font-semibold text-zinc-900">{pct}%</span>{" "}
+            <p className="mt-2.5 text-sm font-normal lowercase tracking-wide text-zinc-500 sm:mt-3 sm:text-[15px]">
               cultural compatibility
             </p>
+            <span className="sr-only">
+              @{handleA} and @{handleB} have {pct}% cultural compatibility.
+            </span>
           </div>
 
           <hr className="my-8 border-zinc-100 sm:my-10" />
@@ -213,9 +215,15 @@ export default async function TasteClashPublicPage({
               {clash.nudge}
             </p>
           ) : null}
+
+          <ClashShareActions
+            handleA={handleA}
+            handleB={handleB}
+            compatibilityScore={pct}
+          />
         </article>
 
-        <aside className="mt-10 text-center sm:mt-12">
+        <aside className="mt-10 pb-10 text-center sm:mt-12 sm:pb-12">
           <h2 className="text-lg font-semibold tracking-tight text-zinc-900 sm:text-xl">
             Discover your cultural compatibility
           </h2>
@@ -231,7 +239,7 @@ export default async function TasteClashPublicPage({
           </Link>
         </aside>
 
-        <footer className="mt-auto flex flex-col gap-4 border-t border-zinc-100 pt-10 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:pt-12">
+        <footer className="flex flex-col gap-4 border-t border-zinc-100 pt-6 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:pt-7">
           <p>
             © {new Date().getFullYear()} Kanon. A space for cultural taste.
           </p>
