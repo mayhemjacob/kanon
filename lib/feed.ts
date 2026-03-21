@@ -42,7 +42,6 @@ export const getHomeFeed = unstable_cache(
      *   bitmap/merge plans over followees; Follow rows are found via @@unique([followerId, followingId]).
      * - SavedItem / self-join Review use @@unique([userId, itemId]) on those tables.
      */
-    console.log({ getting: true })
     const rows = await prisma.$queryRaw<FeedRow[]>`
     SELECT
       r.id,
