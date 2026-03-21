@@ -211,7 +211,7 @@ export default async function PublicSharedReviewPage({
             Track films, series, and books. Share your perspective.
           </p>
           <Link
-            href="/login"
+            href="/"
             className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-zinc-900 px-8 text-[15px] font-medium text-white transition-colors hover:bg-zinc-800"
           >
             Join Kanon
