@@ -1,24 +1,87 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { formatReviewDate } from "@/lib/date";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
-import { prisma } from "@/lib/prisma";
+import {
+  itemTypeLabel,
+  loadPublicReviewShare,
+  reviewerDisplayLabel,
+} from "@/lib/publicReview/loadPublicReviewShare";
 
 function displayName(handle: string | null, name: string | null): string {
-  if (handle) return `@${handle}`;
-  if (name?.trim()) return name.trim();
-  return "Member";
-}
-
-function typeLabel(type: string): string {
-  if (type === "SHOW") return "SERIES";
-  return type;
+  return reviewerDisplayLabel(handle, name);
 }
 
 function imageNeedsUnoptimized(src: string): boolean {
   return src.startsWith("data:") || src.startsWith("blob:");
+}
+
+function clipMeta(s: string, max: number): string {
+  const t = s.trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1)}…`;
+}
+
+function metaDescriptionFromReview(body: string | null): string {
+  const t = body?.replace(/\s+/g, " ").trim();
+  if (t && t.length > 0) {
+    return clipMeta(t, 160);
+  }
+  return "A review on Kanon";
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ publicShareId: string }>;
+}): Promise<Metadata> {
+  const { publicShareId } = await params;
+  const token = publicShareId?.trim() ?? "";
+  const data = await loadPublicReviewShare(token);
+
+  if (!data) {
+    return {
+      title: "Review · Kanon",
+      description: "A review on Kanon",
+    };
+  }
+
+  const reviewer = reviewerDisplayLabel(data.user.handle, data.user.name);
+  const title = clipMeta(`${data.item.title} · ${reviewer} · Kanon`, 72);
+  const description = clipMeta(metaDescriptionFromReview(data.body), 200);
+  const ogImagePath = `/r/${encodeURIComponent(token)}/opengraph-image`;
+  const type = itemTypeLabel(data.item.type);
+  const yearBit = data.item.year != null ? `${data.item.year} · ` : "";
+  const ogTitle = clipMeta(`${data.item.title} · Review`, 64);
+  const ogDesc = clipMeta(`${yearBit}${type} · ${reviewer}`, 200);
+  const ogAlt = clipMeta(`${data.item.title} — ${reviewer}`, 120);
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: ogTitle,
+      description: ogDesc,
+      type: "article",
+      images: [
+        {
+          url: ogImagePath,
+          width: 1200,
+          height: 630,
+          alt: ogAlt,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description,
+      images: [ogImagePath],
+    },
+  };
 }
 
 export default async function PublicSharedReviewPage({
@@ -32,29 +95,7 @@ export default async function PublicSharedReviewPage({
     notFound();
   }
 
-  const review = await prisma.review.findUnique({
-    where: { publicShareId: token },
-    select: {
-      rating: true,
-      body: true,
-      createdAt: true,
-      user: {
-        select: {
-          handle: true,
-          name: true,
-          image: true,
-        },
-      },
-      item: {
-        select: {
-          title: true,
-          year: true,
-          type: true,
-          imageUrl: true,
-        },
-      },
-    },
-  });
+  const review = await loadPublicReviewShare(token);
 
   if (!review) {
     notFound();
@@ -152,7 +193,7 @@ export default async function PublicSharedReviewPage({
                     </span>
                   ) : null}
                   <span className="rounded-full bg-zinc-100 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
-                    {typeLabel(item.type)}
+                    {itemTypeLabel(item.type)}
                   </span>
                 </div>
               </div>
