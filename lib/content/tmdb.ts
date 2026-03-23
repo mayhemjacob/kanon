@@ -46,3 +46,23 @@ export function fetchTmdbTvDetails(tvId: number | string) {
   const id = encodeURIComponent(String(tvId));
   return tmdbFetch(`/tv/${id}`, { append_to_response: "credits" });
 }
+
+/** Response shape for `/movie/popular` and `/tv/popular` (subset). */
+export type TmdbPopularListResponse = {
+  page?: number;
+  results?: Array<{ id?: number }>;
+  total_pages?: number;
+  total_results?: number;
+};
+
+export function fetchTmdbPopularMovies(page: number = 1) {
+  return tmdbFetch<TmdbPopularListResponse>("/movie/popular", {
+    page: String(page),
+  });
+}
+
+export function fetchTmdbPopularTv(page: number = 1) {
+  return tmdbFetch<TmdbPopularListResponse>("/tv/popular", {
+    page: String(page),
+  });
+}

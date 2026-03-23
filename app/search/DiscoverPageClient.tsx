@@ -29,16 +29,43 @@ function imageNeedsUnoptimized(src: string): boolean {
   return src.startsWith("data:") || src.startsWith("blob:");
 }
 
+function mapApiItemToCard(
+  item: {
+    id: string;
+    title: string;
+    year?: number;
+    type: string;
+    imageUrl?: string | null;
+    averageRating?: number;
+    ratingCount?: number;
+    tags?: string[];
+  },
+): ItemCardItem {
+  return {
+    id: item.id,
+    title: item.title,
+    year: item.year ?? 0,
+    type: item.type as ItemType,
+    averageRating: item.averageRating ?? 0,
+    ratingCount: item.ratingCount ?? 0,
+    tags: item.tags ?? [],
+    imageUrl: item.imageUrl ?? null,
+  };
+}
+
 export function DiscoverPageClient({
   items,
   people = [],
   initialTab = "culture",
   initialStatus = {},
+  enableRemoteSearch = true,
 }: {
   items: ItemCardItem[];
   people?: Person[];
   initialTab?: DiscoverTab;
   initialStatus?: Record<string, ItemStatus>;
+  /** When false (e.g. offline dev), search only filters the preloaded list. */
+  enableRemoteSearch?: boolean;
 }) {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
@@ -46,6 +73,8 @@ export function DiscoverPageClient({
   const [typeFilter, setTypeFilter] = useState<"All" | ItemType>("All");
   const [selectedRatingBands, setSelectedRatingBands] = useState<Set<RatingFilterOption>>(new Set());
   const [statusMap, setStatusMap] = useState<Record<string, ItemStatus>>(initialStatus);
+  const [remoteItems, setRemoteItems] = useState<ItemCardItem[]>([]);
+  const [cultureSearchLoading, setCultureSearchLoading] = useState(false);
 
   const tabFromUrl = searchParams?.get("tab") ?? null;
   useEffect(() => {
@@ -53,8 +82,6 @@ export function DiscoverPageClient({
       setTab(tabFromUrl);
     }
   }, [tabFromUrl]);
-
-  const discoverItemIds = useMemo(() => items.map((i) => i.id), [items]);
 
   const toggleRatingBand = useCallback((band: RatingFilterOption) => {
     setSelectedRatingBands((prev) => {
@@ -64,6 +91,51 @@ export function DiscoverPageClient({
       return next;
     });
   }, []);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
+
+  const trimmed = query.trim();
+  const useServerCultureSearch =
+    enableRemoteSearch && tab === "culture" && trimmed.length > 0;
+
+  useEffect(() => {
+    if (!useServerCultureSearch) {
+      setCultureSearchLoading(false);
+      return;
+    }
+
+    setCultureSearchLoading(true);
+    setRemoteItems([]);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: trimmed });
+        if (typeFilter !== "All") params.set("type", typeFilter);
+        const res = await fetch(`/api/items?${params.toString()}`);
+        const data = res.ok ? await res.json() : [];
+        if (!cancelled && Array.isArray(data)) {
+          setRemoteItems(
+            data.map((row: Parameters<typeof mapApiItemToCard>[0]) => mapApiItemToCard(row)),
+          );
+        }
+      } catch {
+        if (!cancelled) setRemoteItems([]);
+      } finally {
+        if (!cancelled) setCultureSearchLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [useServerCultureSearch, trimmed, typeFilter]);
+
+  const baseCultureItems = useServerCultureSearch ? remoteItems : items;
+
+  const discoverItemIds = useMemo(() => baseCultureItems.map((i) => i.id), [baseCultureItems]);
 
   const fetchStatus = useCallback(async () => {
     if (discoverItemIds.length === 0) return;
@@ -90,10 +162,6 @@ export function DiscoverPageClient({
     // Partial map only (unexpected): refresh from API.
     void fetchStatus();
   }, [discoverItemIds, initialStatus, fetchStatus]);
-
-  useEffect(() => {
-    setTab(initialTab);
-  }, [initialTab]);
 
   const handleSaveToggle = useCallback(async (itemId: string) => {
     setStatusMap((prev) => ({
@@ -142,17 +210,18 @@ export function DiscoverPageClient({
     }
   }, []);
 
-  const trimmed = query.trim();
-
   const filteredItems = useMemo(() => {
-    let list = items;
-    if (typeFilter !== "All") {
+    let list = baseCultureItems;
+    if (!useServerCultureSearch && typeFilter !== "All") {
       list = list.filter((item) => item.type === typeFilter);
     }
     if (selectedRatingBands.size > 0) {
       list = list.filter((item) =>
         [...selectedRatingBands].some((band) => ratingMatchesBand(item.averageRating, band)),
       );
+    }
+    if (useServerCultureSearch) {
+      return list;
     }
     if (!trimmed) return list;
     const q = trimmed.toLowerCase();
@@ -161,7 +230,13 @@ export function DiscoverPageClient({
         item.title.toLowerCase().includes(q) ||
         item.tags.some((t) => t.toLowerCase().includes(q)),
     );
-  }, [items, trimmed, typeFilter, selectedRatingBands]);
+  }, [
+    baseCultureItems,
+    useServerCultureSearch,
+    trimmed,
+    typeFilter,
+    selectedRatingBands,
+  ]);
 
   const filteredPeople = useMemo(() => {
     if (!trimmed) return people;
@@ -282,6 +357,15 @@ export function DiscoverPageClient({
                   );
                 })}
               </div>
+
+              {useServerCultureSearch && cultureSearchLoading ? (
+                <p className="text-center text-sm text-zinc-500 py-6">Searching…</p>
+              ) : null}
+              {useServerCultureSearch &&
+              !cultureSearchLoading &&
+              filteredItems.length === 0 ? (
+                <p className="text-center text-sm text-zinc-500 py-6">No results in the catalog.</p>
+              ) : null}
 
               <ul className="divide-y divide-zinc-100 rounded-2xl border border-zinc-100 bg-white">
                 {filteredItems.map((item, index) => (

@@ -40,6 +40,7 @@ export default async function DiscoverPage({
         people={[]}
         initialTab={initialTab}
         initialStatus={{}}
+        enableRemoteSearch={false}
       />
     );
   }
@@ -55,6 +56,7 @@ export default async function DiscoverPage({
         year: true,
         type: true,
         imageUrl: true,
+        tags: true,
       },
     }),
     prisma.user.findMany({
@@ -112,7 +114,7 @@ export default async function DiscoverPage({
       type: item.type as ItemType,
       averageRating,
       ratingCount,
-      tags: [],
+      tags: item.tags ?? [],
       imageUrl: item.imageUrl ?? null,
     };
   });
@@ -154,6 +156,7 @@ export default async function DiscoverPage({
       people={people}
       initialTab={initialTab}
       initialStatus={initialStatus}
+      enableRemoteSearch
     />
   );
 }

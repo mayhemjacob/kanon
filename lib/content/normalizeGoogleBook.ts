@@ -1,4 +1,5 @@
 import type { KanonImportedItem } from "@/lib/content/kanonImportModel";
+import { mapGoogleBookCategoriesToKanonTags } from "@/lib/content/mapImportTags";
 
 /** First 4-digit year in the string (handles partial dates and loose strings). */
 function yearFromPublishedDate(value: unknown): number | null {
@@ -50,7 +51,7 @@ export function normalizeGoogleBook(payload: any): KanonImportedItem {
     imageUrl,
     description,
     director,
-    tags: [],
+    tags: mapGoogleBookCategoriesToKanonTags(vi?.categories),
     externalSource: "GOOGLE_BOOKS",
     externalId,
     sourceUpdatedAt: null,

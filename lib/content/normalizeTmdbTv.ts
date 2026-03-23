@@ -1,4 +1,5 @@
 import type { KanonImportedItem } from "@/lib/content/kanonImportModel";
+import { mapTmdbGenresToKanonTags } from "@/lib/content/mapImportTags";
 
 function yearFromStartOfDateString(value: unknown): number | null {
   if (typeof value !== "string") return null;
@@ -47,7 +48,7 @@ export function normalizeTmdbTv(payload: any): KanonImportedItem {
     imageUrl,
     description,
     director,
-    tags: [],
+    tags: mapTmdbGenresToKanonTags(payload?.genres),
     externalSource: "TMDB_TV",
     externalId,
     sourceUpdatedAt: null,
