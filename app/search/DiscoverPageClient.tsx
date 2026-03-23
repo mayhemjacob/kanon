@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ItemCard, type ItemCardItem, type ItemType } from "@/app/components/ItemCard";
+import { DISCOVER_BROWSE_PAGE_SIZE } from "@/lib/discoverBrowse";
 
 type ItemStatus = { saved: boolean; reviewed: boolean; reviewId?: string };
 
@@ -76,6 +77,21 @@ export function DiscoverPageClient({
   const [remoteItems, setRemoteItems] = useState<ItemCardItem[]>([]);
   const [cultureSearchLoading, setCultureSearchLoading] = useState(false);
 
+  const [browseItems, setBrowseItems] = useState<ItemCardItem[]>(items);
+  const browseOffsetRef = useRef(items.length);
+  const [browseHasMore, setBrowseHasMore] = useState(
+    () => items.length >= DISCOVER_BROWSE_PAGE_SIZE,
+  );
+  const [browseLoadingMore, setBrowseLoadingMore] = useState(false);
+  const browseFetchLockRef = useRef(false);
+  const browseSentinelRef = useRef<HTMLDivElement | null>(null);
+
+  /** Server-paginated list when a single type is selected (avoids empty UI when recent "All" rows are one type). */
+  const [typedBrowseItems, setTypedBrowseItems] = useState<ItemCardItem[]>([]);
+  const typedBrowseOffsetRef = useRef(0);
+  const [typedBrowseHasMore, setTypedBrowseHasMore] = useState(true);
+  const [typedBrowseLoading, setTypedBrowseLoading] = useState(false);
+
   const tabFromUrl = searchParams?.get("tab") ?? null;
   useEffect(() => {
     if (tabFromUrl === "people" || tabFromUrl === "culture") {
@@ -95,6 +111,16 @@ export function DiscoverPageClient({
   useEffect(() => {
     setTab(initialTab);
   }, [initialTab]);
+
+  const browseSeedKey = useMemo(() => items.map((i) => i.id).join(","), [items]);
+
+  useEffect(() => {
+    setBrowseItems(items);
+    browseOffsetRef.current = items.length;
+    setBrowseHasMore(items.length >= DISCOVER_BROWSE_PAGE_SIZE);
+    // Intentionally depend on id-signature only so parent array reference churn does not wipe appended pages.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- items synced when browseSeedKey (first-page ids) changes
+  }, [browseSeedKey]);
 
   const trimmed = query.trim();
   const useServerCultureSearch =
@@ -133,7 +159,183 @@ export function DiscoverPageClient({
     };
   }, [useServerCultureSearch, trimmed, typeFilter]);
 
-  const baseCultureItems = useServerCultureSearch ? remoteItems : items;
+  const isTypedApiBrowse =
+    enableRemoteSearch && !useServerCultureSearch && typeFilter !== "All";
+
+  useEffect(() => {
+    if (!isTypedApiBrowse) {
+      setTypedBrowseLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setTypedBrowseLoading(true);
+    setTypedBrowseItems([]);
+    typedBrowseOffsetRef.current = 0;
+    setTypedBrowseHasMore(false);
+
+    const run = async () => {
+      try {
+        const res = await fetch(
+          `/api/items/browse?type=${encodeURIComponent(typeFilter)}&offset=0&limit=${DISCOVER_BROWSE_PAGE_SIZE}`,
+        );
+        const data = res.ok ? await res.json() : [];
+        if (cancelled || !Array.isArray(data)) {
+          if (!cancelled) setTypedBrowseHasMore(false);
+          return;
+        }
+        const mapped = data.map((row: Parameters<typeof mapApiItemToCard>[0]) =>
+          mapApiItemToCard(row),
+        );
+        if (!cancelled) {
+          setTypedBrowseItems(mapped);
+          typedBrowseOffsetRef.current = mapped.length;
+          setTypedBrowseHasMore(mapped.length >= DISCOVER_BROWSE_PAGE_SIZE);
+        }
+      } catch {
+        if (!cancelled) {
+          setTypedBrowseItems([]);
+          setTypedBrowseHasMore(false);
+        }
+      } finally {
+        if (!cancelled) setTypedBrowseLoading(false);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [isTypedApiBrowse, typeFilter, browseSeedKey]);
+
+  const loadMoreBrowse = useCallback(async () => {
+    if (useServerCultureSearch || !enableRemoteSearch || browseFetchLockRef.current) {
+      return;
+    }
+
+    if (typeFilter === "All") {
+      if (!browseHasMore) return;
+    } else {
+      if (!typedBrowseHasMore) return;
+    }
+
+    browseFetchLockRef.current = true;
+    setBrowseLoadingMore(true);
+
+    try {
+      if (typeFilter === "All") {
+        const offset = browseOffsetRef.current;
+        const res = await fetch(
+          `/api/items/browse?offset=${offset}&limit=${DISCOVER_BROWSE_PAGE_SIZE}`,
+        );
+        const data = res.ok ? await res.json() : [];
+        if (!Array.isArray(data)) {
+          setBrowseHasMore(false);
+          return;
+        }
+        const mapped = data.map((row: Parameters<typeof mapApiItemToCard>[0]) =>
+          mapApiItemToCard(row),
+        );
+        setBrowseItems((prev) => {
+          const seen = new Set(prev.map((p) => p.id));
+          const next = [...prev];
+          for (const row of mapped) {
+            if (!seen.has(row.id)) {
+              seen.add(row.id);
+              next.push(row);
+            }
+          }
+          return next;
+        });
+        browseOffsetRef.current = offset + mapped.length;
+        if (mapped.length < DISCOVER_BROWSE_PAGE_SIZE) {
+          setBrowseHasMore(false);
+        }
+      } else {
+        const offset = typedBrowseOffsetRef.current;
+        const res = await fetch(
+          `/api/items/browse?type=${encodeURIComponent(typeFilter)}&offset=${offset}&limit=${DISCOVER_BROWSE_PAGE_SIZE}`,
+        );
+        const data = res.ok ? await res.json() : [];
+        if (!Array.isArray(data)) {
+          setTypedBrowseHasMore(false);
+          return;
+        }
+        const mapped = data.map((row: Parameters<typeof mapApiItemToCard>[0]) =>
+          mapApiItemToCard(row),
+        );
+        setTypedBrowseItems((prev) => {
+          const seen = new Set(prev.map((p) => p.id));
+          const next = [...prev];
+          for (const row of mapped) {
+            if (!seen.has(row.id)) {
+              seen.add(row.id);
+              next.push(row);
+            }
+          }
+          return next;
+        });
+        typedBrowseOffsetRef.current = offset + mapped.length;
+        if (mapped.length < DISCOVER_BROWSE_PAGE_SIZE) {
+          setTypedBrowseHasMore(false);
+        }
+      }
+    } catch {
+      if (typeFilter === "All") setBrowseHasMore(false);
+      else setTypedBrowseHasMore(false);
+    } finally {
+      browseFetchLockRef.current = false;
+      setBrowseLoadingMore(false);
+    }
+  }, [
+    browseHasMore,
+    enableRemoteSearch,
+    typedBrowseHasMore,
+    typeFilter,
+    useServerCultureSearch,
+  ]);
+
+  const browseInfiniteHasMore = useMemo(() => {
+    if (useServerCultureSearch || !enableRemoteSearch) return false;
+    if (typeFilter !== "All" && typedBrowseLoading && typedBrowseItems.length === 0) {
+      return false;
+    }
+    return typeFilter === "All" ? browseHasMore : typedBrowseHasMore;
+  }, [
+    browseHasMore,
+    enableRemoteSearch,
+    typedBrowseHasMore,
+    typedBrowseItems.length,
+    typedBrowseLoading,
+    typeFilter,
+    useServerCultureSearch,
+  ]);
+
+  useEffect(() => {
+    if (useServerCultureSearch || !browseInfiniteHasMore || !enableRemoteSearch) return;
+    const el = browseSentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadMoreBrowse();
+        }
+      },
+      { root: null, rootMargin: "280px", threshold: 0 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [
+    browseInfiniteHasMore,
+    enableRemoteSearch,
+    loadMoreBrowse,
+    useServerCultureSearch,
+  ]);
+
+  const baseCultureItems = useServerCultureSearch
+    ? remoteItems
+    : isTypedApiBrowse
+      ? typedBrowseItems
+      : browseItems;
 
   const discoverItemIds = useMemo(() => baseCultureItems.map((i) => i.id), [baseCultureItems]);
 
@@ -212,7 +414,7 @@ export function DiscoverPageClient({
 
   const filteredItems = useMemo(() => {
     let list = baseCultureItems;
-    if (!useServerCultureSearch && typeFilter !== "All") {
+    if (!useServerCultureSearch && typeFilter !== "All" && !isTypedApiBrowse) {
       list = list.filter((item) => item.type === typeFilter);
     }
     if (selectedRatingBands.size > 0) {
@@ -232,6 +434,7 @@ export function DiscoverPageClient({
     );
   }, [
     baseCultureItems,
+    isTypedApiBrowse,
     useServerCultureSearch,
     trimmed,
     typeFilter,
@@ -366,6 +569,24 @@ export function DiscoverPageClient({
               filteredItems.length === 0 ? (
                 <p className="text-center text-sm text-zinc-500 py-6">No results in the catalog.</p>
               ) : null}
+              {isTypedApiBrowse &&
+              typedBrowseLoading &&
+              typedBrowseItems.length === 0 ? (
+                <p className="text-center text-sm text-zinc-500 py-6">Loading…</p>
+              ) : null}
+              {isTypedApiBrowse &&
+              !typedBrowseLoading &&
+              typedBrowseItems.length === 0 ? (
+                <p className="text-center text-sm text-zinc-500 py-6">
+                  No{" "}
+                  {typeFilter === "FILM"
+                    ? "films"
+                    : typeFilter === "SHOW"
+                      ? "series"
+                      : "books"}{" "}
+                  in the catalog yet.
+                </p>
+              ) : null}
 
               <ul className="divide-y divide-zinc-100 rounded-2xl border border-zinc-100 bg-white">
                 {filteredItems.map((item, index) => (
@@ -384,6 +605,19 @@ export function DiscoverPageClient({
                   </li>
                 ))}
               </ul>
+
+              {!useServerCultureSearch && enableRemoteSearch && browseInfiniteHasMore ? (
+                <div
+                  ref={browseSentinelRef}
+                  className="h-10 w-full shrink-0"
+                  aria-hidden
+                />
+              ) : null}
+              {!useServerCultureSearch && browseLoadingMore ? (
+                <p className="text-center text-sm text-zinc-500 py-3">
+                  Loading more…
+                </p>
+              ) : null}
             </div>
           )}
 

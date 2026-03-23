@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { ItemCardItem, ItemType } from "@/app/components/ItemCard";
+import { DISCOVER_BROWSE_PAGE_SIZE } from "@/lib/discoverBrowse";
 import { DiscoverPageClient } from "./DiscoverPageClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
@@ -48,7 +49,7 @@ export default async function DiscoverPage({
   const [session, itemsResult, peopleRows] = await Promise.all([
     getServerSession(authOptions),
     prisma.item.findMany({
-      take: 20,
+      take: DISCOVER_BROWSE_PAGE_SIZE,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
