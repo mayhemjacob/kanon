@@ -66,3 +66,29 @@ export function fetchTmdbPopularTv(page: number = 1) {
     page: String(page),
   });
 }
+
+/** `/search/movie` response (subset). */
+export type TmdbMovieSearchResponse = {
+  page?: number;
+  results?: TmdbMovieSearchResult[];
+  total_pages?: number;
+  total_results?: number;
+};
+
+export type TmdbMovieSearchResult = {
+  id?: number;
+  title?: string;
+  original_title?: string;
+  release_date?: string;
+};
+
+/**
+ * Search movies by title; optional release year narrows TMDb results.
+ */
+export function searchTmdbMovies(query: string, year?: number) {
+  const params: Record<string, string> = { query };
+  if (year !== undefined && Number.isFinite(year)) {
+    params.year = String(year);
+  }
+  return tmdbFetch<TmdbMovieSearchResponse>("/search/movie", params);
+}
