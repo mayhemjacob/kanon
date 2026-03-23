@@ -190,6 +190,17 @@ export async function addListItem(
         itemId,
         position: (maxPositionRow?.position ?? -1) + 1,
       },
+      include: {
+        item: {
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            year: true,
+            imageUrl: true,
+          },
+        },
+      },
     })
   })
 }

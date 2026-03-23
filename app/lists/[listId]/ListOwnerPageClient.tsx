@@ -28,6 +28,20 @@ type SearchItem = {
   imageUrl?: string | null
 }
 
+type AddedListItemResponse = {
+  id: string
+  listId: string
+  itemId: string
+  position: number
+  item: {
+    id: string
+    title: string
+    year: number | null
+    type: ItemType
+    imageUrl: string | null
+  }
+}
+
 type TypeFilter = "All" | "FILM" | "SHOW" | "BOOK"
 
 const typePill: TypeFilter[] = ["All", "FILM", "SHOW", "BOOK"]
@@ -177,15 +191,20 @@ export function ListOwnerPageClient({
           throw new Error(data?.error || "Could not add item")
         }
 
+        const created = (await res.json().catch(() => null)) as AddedListItemResponse | null
+        if (!created?.id || !created?.item?.id) {
+          throw new Error("Could not add item")
+        }
+
         addedRows.push({
-          id: `tmp-${row.id}`,
-          position: items.length + addedRows.length,
+          id: created.id,
+          position: created.position,
           item: {
-            id: row.id,
-            title: row.title,
-            year: row.year || null,
-            type: row.type,
-            imageUrl: row.imageUrl ?? null,
+            id: created.item.id,
+            title: created.item.title,
+            year: created.item.year ?? null,
+            type: created.item.type,
+            imageUrl: created.item.imageUrl ?? null,
           },
         })
       } catch (err) {

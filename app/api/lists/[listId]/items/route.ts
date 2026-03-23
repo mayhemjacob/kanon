@@ -24,7 +24,19 @@ export async function POST(
 
   try {
     const row = await addListItem(listId, session.user.id, itemId)
-    return NextResponse.json({ id: row.id, listId: row.listId, itemId: row.itemId })
+    return NextResponse.json({
+      id: row.id,
+      listId: row.listId,
+      itemId: row.itemId,
+      position: row.position,
+      item: {
+        id: row.item.id,
+        title: row.item.title,
+        year: row.item.year ?? null,
+        type: row.item.type,
+        imageUrl: row.item.imageUrl ?? null,
+      },
+    })
   } catch (err) {
     if (err instanceof Error && err.message === "List not found") {
       return NextResponse.json({ error: "List not found" }, { status: 404 })
