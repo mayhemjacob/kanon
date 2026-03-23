@@ -3,12 +3,44 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { notFound } from "next/navigation";
 import { ProfileByHandleClient, type ProfileData } from "./ProfileByHandleClient";
+import type { ProfileListPreview } from "@/app/profile/components/ProfileListCard";
 
 /** First batch of RATED grid reviews (newest first). Matches /profile cap; no load-more yet. */
 const PROFILE_REVIEWS_INITIAL_LIMIT = 40;
 
 function normalizeHandle(handle: string): string {
   return handle.trim().toLowerCase().replace(/^@/, "");
+}
+
+async function loadHandleProfileListsOrEmpty(userId: string, isOwnProfile: boolean) {
+  const listClient = (prisma as unknown as { list?: { findMany: Function } }).list;
+  if (!listClient?.findMany) return [];
+  try {
+    return await listClient.findMany({
+      where: isOwnProfile
+        ? { ownerId: userId }
+        : { ownerId: userId, visibility: "PUBLIC" },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        _count: { select: { items: true } },
+        items: {
+          orderBy: { position: "asc" },
+          take: 4,
+          select: {
+            id: true,
+            item: {
+              select: { id: true, imageUrl: true, type: true, title: true },
+            },
+          },
+        },
+      },
+    });
+  } catch {
+    return [];
+  }
 }
 
 export default async function ProfileByHandlePage({
@@ -82,6 +114,8 @@ export default async function ProfileByHandlePage({
     session?.user?.id && session.user.id === targetUser.id
   );
 
+  const lists = await loadHandleProfileListsOrEmpty(targetUser.id, isOwnProfile);
+
   const viewerHandleRow =
     !isOwnProfile && session?.user?.id
       ? await prisma.user.findUnique({
@@ -93,6 +127,19 @@ export default async function ProfileByHandlePage({
   /** Slug for /match/[viewer]/[viewed]; null if guest or viewer has no handle yet */
   const viewerHandleSlug = viewerHandleRow?.handle ?? null;
 
+  const profileLists: ProfileListPreview[] = lists.map((list) => ({
+    id: list.id,
+    title: list.title,
+    description: list.description ?? null,
+    itemCount: list._count.items,
+    previewItems: list.items.map((row) => ({
+      id: row.item.id,
+      imageUrl: row.item.imageUrl ?? null,
+      type: row.item.type,
+      title: row.item.title,
+    })),
+  }));
+
   const profile: ProfileData = {
     handle: `@${targetUser.handle}`,
     bio: targetUser.bio ?? null,
@@ -100,6 +147,7 @@ export default async function ProfileByHandlePage({
     followers: targetUser._count.followers,
     following: targetUser._count.following,
     cards,
+    lists: profileLists,
     followingByMe: !!followRow,
     isOwnProfile,
     viewerHandleSlug,

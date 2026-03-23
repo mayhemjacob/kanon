@@ -5,6 +5,7 @@ import ProfilePageClient, {
   type ProfileState,
   type ReviewCard,
 } from "./ProfilePageClient";
+import type { ProfileListPreview } from "./components/ProfileListCard";
 
 /** First batch of RATED grid reviews (newest first). No load-more yet. */
 const PROFILE_REVIEWS_INITIAL_LIMIT = 40;
@@ -25,6 +26,35 @@ type UserSelect = {
   _count: { followers: number; following: number };
 };
 
+async function loadProfileListsOrEmpty(userId: string) {
+  const listClient = (prisma as unknown as { list?: { findMany: Function } }).list;
+  if (!listClient?.findMany) return [];
+  try {
+    return await listClient.findMany({
+      where: { ownerId: userId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        _count: { select: { items: true } },
+        items: {
+          orderBy: { position: "asc" },
+          take: 4,
+          select: {
+            id: true,
+            item: {
+              select: { id: true, imageUrl: true, type: true, title: true },
+            },
+          },
+        },
+      },
+    });
+  } catch {
+    return [];
+  }
+}
+
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
 
@@ -37,7 +67,11 @@ export default async function ProfilePage() {
 
   if (!where) {
     return (
-      <ProfilePageClient initialProfile={emptyProfile} initialCards={[]} />
+      <ProfilePageClient
+        initialProfile={emptyProfile}
+        initialCards={[]}
+        initialLists={[]}
+      />
     );
   }
 
@@ -87,24 +121,31 @@ export default async function ProfilePage() {
 
   if (!user) {
     return (
-      <ProfilePageClient initialProfile={emptyProfile} initialCards={[]} />
+      <ProfilePageClient
+        initialProfile={emptyProfile}
+        initialCards={[]}
+        initialLists={[]}
+      />
     );
   }
 
-  const reviews = await prisma.review.findMany({
-    where: { userId: user.id },
-    select: {
-      id: true,
-      itemId: true,
-      rating: true,
-      createdAt: true,
-      item: {
-        select: { type: true, title: true, imageUrl: true, year: true },
+  const [reviews, lists] = await Promise.all([
+    prisma.review.findMany({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        itemId: true,
+        rating: true,
+        createdAt: true,
+        item: {
+          select: { type: true, title: true, imageUrl: true, year: true },
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-    take: PROFILE_REVIEWS_INITIAL_LIMIT,
-  });
+      orderBy: { createdAt: "desc" },
+      take: PROFILE_REVIEWS_INITIAL_LIMIT,
+    }),
+    loadProfileListsOrEmpty(user.id),
+  ]);
 
   const initialCards: ReviewCard[] = reviews.map((r) => ({
     id: r.id,
@@ -126,10 +167,24 @@ export default async function ProfilePage() {
     following: user._count.following,
   };
 
+  const initialLists: ProfileListPreview[] = lists.map((list) => ({
+    id: list.id,
+    title: list.title,
+    description: list.description ?? null,
+    itemCount: list._count.items,
+    previewItems: list.items.map((row) => ({
+      id: row.item.id,
+      imageUrl: row.item.imageUrl ?? null,
+      type: row.item.type,
+      title: row.item.title,
+    })),
+  }));
+
   return (
     <ProfilePageClient
       initialProfile={initialProfile}
       initialCards={initialCards}
+      initialLists={initialLists}
     />
   );
 }

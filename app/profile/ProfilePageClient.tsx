@@ -7,6 +7,10 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { formatTimeAgo } from "@/lib/date";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+import {
+  ProfileListCard,
+  type ProfileListPreview,
+} from "./components/ProfileListCard";
 
 export type ProfileState = {
   handle: string | null;
@@ -29,6 +33,7 @@ export type ReviewCard = {
 };
 
 type SortOption = "reviewDate" | "rating" | "publicationYear";
+type ProfileTab = "rated" | "lists";
 
 type RatingFilterOption = number | "≤3";
 const ratingOptions: RatingFilterOption[] = [10, 9, 8, 7, 6, 5, 4, "≤3"];
@@ -41,11 +46,14 @@ function ratingMatchesBand(rating: number, band: RatingFilterOption): boolean {
 export default function ProfilePageClient({
   initialProfile,
   initialCards,
+  initialLists,
 }: {
   initialProfile: ProfileState;
   initialCards: ReviewCard[];
+  initialLists: ProfileListPreview[];
 }) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<ProfileTab>("rated");
   const [activeType, setActiveType] =
     useState<"All" | "Films" | "Series" | "Books">("All");
   const [selectedRatingBands, setSelectedRatingBands] = useState<Set<RatingFilterOption>>(new Set());
@@ -55,6 +63,7 @@ export default function ProfilePageClient({
   const [imageError, setImageError] = useState(false);
   const [profile, setProfile] = useState<ProfileState>(initialProfile);
   const [cards, setCards] = useState<ReviewCard[]>(initialCards);
+  const [lists, setLists] = useState<ProfileListPreview[]>(initialLists);
   const [profileLoading, setProfileLoading] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -62,7 +71,8 @@ export default function ProfilePageClient({
   useEffect(() => {
     setProfile(initialProfile);
     setCards(initialCards);
-  }, [initialProfile, initialCards]);
+    setLists(initialLists);
+  }, [initialProfile, initialCards, initialLists]);
 
   const loadProfile = useCallback(async (showLoading = true) => {
     if (showLoading) setProfileLoading(true);
@@ -305,6 +315,32 @@ export default function ProfilePageClient({
             </div>
         </header>
 
+        <nav className="flex items-center border-b border-zinc-200 text-sm">
+          <button
+            type="button"
+            onClick={() => setActiveTab("rated")}
+            className={`-mb-px flex-1 border-b-2 py-3 font-medium transition-colors ${
+              activeTab === "rated"
+                ? "border-zinc-900 text-zinc-900"
+                : "border-transparent text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            Rated
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("lists")}
+            className={`-mb-px flex-1 border-b-2 py-3 font-medium transition-colors ${
+              activeTab === "lists"
+                ? "border-zinc-900 text-zinc-900"
+                : "border-transparent text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            Lists
+          </button>
+        </nav>
+
+        {activeTab === "rated" ? (
         <section className="space-y-3 pt-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -500,6 +536,29 @@ export default function ProfilePageClient({
             </>
           )}
         </section>
+        ) : (
+          <section className="space-y-4 pt-4">
+            <button
+              type="button"
+              onClick={() => router.push("/lists/new")}
+              className="w-full rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+            >
+              + Create List
+            </button>
+
+            {lists.length === 0 ? (
+              <div className="rounded-2xl border border-zinc-100 bg-zinc-50 px-5 py-8 text-center">
+                <p className="text-sm text-zinc-600">No lists yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                {lists.map((list) => (
+                  <ProfileListCard key={list.id} list={list} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </main>
   );

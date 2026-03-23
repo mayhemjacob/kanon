@@ -6,8 +6,13 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatTimeAgo } from "@/lib/date";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+import {
+  ProfileListCard,
+  type ProfileListPreview,
+} from "@/app/profile/components/ProfileListCard";
 
 type SortOption = "reviewDate" | "rating" | "publicationYear";
+type ProfileTab = "rated" | "lists";
 
 export type ProfileData = {
   handle: string;
@@ -34,6 +39,7 @@ export type ProfileData = {
    * or handle not set yet.
    */
   viewerHandleSlug: string | null;
+  lists: ProfileListPreview[];
 };
 
 type Props = {
@@ -52,6 +58,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
   }, [initialProfile.followingByMe, initialProfile.followers, initialProfile.handle]);
 
   const [activeType, setActiveType] = useState<"All" | "Films" | "Series" | "Books">("All");
+  const [activeTab, setActiveTab] = useState<ProfileTab>("rated");
   const [sortBy, setSortBy] = useState<SortOption>("reviewDate");
   const [sortModalOpen, setSortModalOpen] = useState(false);
 
@@ -194,6 +201,32 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
           ) : null}
         </header>
 
+        <nav className="flex items-center border-b border-zinc-200 text-sm">
+          <button
+            type="button"
+            onClick={() => setActiveTab("rated")}
+            className={`-mb-px flex-1 border-b-2 py-3 font-medium transition-colors ${
+              activeTab === "rated"
+                ? "border-zinc-900 text-zinc-900"
+                : "border-transparent text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            Rated
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("lists")}
+            className={`-mb-px flex-1 border-b-2 py-3 font-medium transition-colors ${
+              activeTab === "lists"
+                ? "border-zinc-900 text-zinc-900"
+                : "border-transparent text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            Lists
+          </button>
+        </nav>
+
+        {activeTab === "rated" ? (
         <section className="space-y-3 pt-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -354,6 +387,30 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
             )}
           </div>
         </section>
+        ) : (
+          <section className="space-y-4 pt-4">
+            {initialProfile.isOwnProfile ? (
+              <Link
+                href="/lists/new"
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+              >
+                + Create List
+              </Link>
+            ) : null}
+
+            {initialProfile.lists.length === 0 ? (
+              <div className="rounded-2xl border border-zinc-100 bg-zinc-50 px-5 py-8 text-center">
+                <p className="text-sm text-zinc-600">No lists yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                {initialProfile.lists.map((list) => (
+                  <ProfileListCard key={list.id} list={list} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </main>
   );

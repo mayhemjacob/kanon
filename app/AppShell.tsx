@@ -22,7 +22,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/r/") ||
-    pathname.startsWith("/match/");
+    pathname.startsWith("/match/") ||
+    pathname.startsWith("/lists/");
 
   const publicShareChrome =
     pathname.startsWith("/r/") || pathname.startsWith("/match/");
