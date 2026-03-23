@@ -29,12 +29,12 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
   const rawTitle = typeof body?.title === "string" ? body.title : ""
   const rawDescription = typeof body?.description === "string" ? body.description : ""
-  const rawItemIds = Array.isArray(body?.itemIds) ? body.itemIds : []
+  const rawItemIds: unknown[] = Array.isArray(body?.itemIds) ? body.itemIds : []
 
   const title = rawTitle.trim()
   const description = rawDescription.trim() || null
   const itemIds = rawItemIds
-    .map((id) => (typeof id === "string" ? id.trim() : ""))
+    .map((id: unknown) => (typeof id === "string" ? id.trim() : ""))
     .filter(Boolean)
 
   if (!title) {

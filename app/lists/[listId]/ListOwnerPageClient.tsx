@@ -73,7 +73,7 @@ export function ListOwnerPageClient({
   }
 
   useEffect(() => {
-    if (searchParams.get("openAdd") !== "1") return
+    if (searchParams?.get("openAdd") !== "1") return
     openAddModal()
     router.replace(`/lists/${listId}`)
     // Intentionally only reacts to one-time query intent.

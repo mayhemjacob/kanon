@@ -8,15 +8,34 @@ import type { ProfileListPreview } from "@/app/profile/components/ProfileListCar
 /** First batch of RATED grid reviews (newest first). Matches /profile cap; no load-more yet. */
 const PROFILE_REVIEWS_INITIAL_LIMIT = 40;
 
+type ProfileListQueryRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  _count: { items: number };
+  items: Array<{
+    id: string;
+    item: {
+      id: string;
+      imageUrl: string | null;
+      type: "FILM" | "SHOW" | "BOOK";
+      title: string;
+    };
+  }>;
+};
+
 function normalizeHandle(handle: string): string {
   return handle.trim().toLowerCase().replace(/^@/, "");
 }
 
-async function loadHandleProfileListsOrEmpty(userId: string, isOwnProfile: boolean) {
+async function loadHandleProfileListsOrEmpty(
+  userId: string,
+  isOwnProfile: boolean,
+): Promise<ProfileListQueryRow[]> {
   const listClient = (prisma as unknown as { list?: { findMany: Function } }).list;
   if (!listClient?.findMany) return [];
   try {
-    return await listClient.findMany({
+    const rows = await listClient.findMany({
       where: isOwnProfile
         ? { ownerId: userId }
         : { ownerId: userId, visibility: "PUBLIC" },
@@ -38,6 +57,7 @@ async function loadHandleProfileListsOrEmpty(userId: string, isOwnProfile: boole
         },
       },
     });
+    return rows as ProfileListQueryRow[];
   } catch {
     return [];
   }

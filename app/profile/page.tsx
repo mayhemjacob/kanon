@@ -26,11 +26,27 @@ type UserSelect = {
   _count: { followers: number; following: number };
 };
 
-async function loadProfileListsOrEmpty(userId: string) {
+type ProfileListQueryRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  _count: { items: number };
+  items: Array<{
+    id: string;
+    item: {
+      id: string;
+      imageUrl: string | null;
+      type: "FILM" | "SHOW" | "BOOK";
+      title: string;
+    };
+  }>;
+};
+
+async function loadProfileListsOrEmpty(userId: string): Promise<ProfileListQueryRow[]> {
   const listClient = (prisma as unknown as { list?: { findMany: Function } }).list;
   if (!listClient?.findMany) return [];
   try {
-    return await listClient.findMany({
+    const rows = await listClient.findMany({
       where: { ownerId: userId },
       orderBy: { createdAt: "desc" },
       select: {
@@ -50,6 +66,7 @@ async function loadProfileListsOrEmpty(userId: string) {
         },
       },
     });
+    return rows as ProfileListQueryRow[];
   } catch {
     return [];
   }
