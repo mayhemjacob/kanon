@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     const list = await createList(session.user.id, {
       title,
       description,
-      visibility: "PRIVATE",
+      visibility: "PUBLIC",
       itemIds,
     })
     return NextResponse.json({ id: list.id }, { status: 201 })

@@ -124,7 +124,7 @@ model List {
   ownerId     String
   title       String
   description String?
-  visibility  ListVisibility @default(PRIVATE)
+  visibility  ListVisibility @default(PUBLIC)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 

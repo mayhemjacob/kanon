@@ -27,6 +27,7 @@ export default async function ListDetailPage({
       year: row.item.year ?? null,
       type: row.item.type as "FILM" | "SHOW" | "BOOK",
       imageUrl: row.item.imageUrl ?? null,
+      director: row.item.director ?? null,
     },
   }))
 
@@ -35,6 +36,11 @@ export default async function ListDetailPage({
       listId={list.id}
       title={list.title}
       description={list.description ?? null}
+      curator={{
+        image: list.owner.image ?? null,
+        handle: list.owner.handle ?? null,
+        name: list.owner.name ?? null,
+      }}
       initialItems={initialItems}
     />
   )

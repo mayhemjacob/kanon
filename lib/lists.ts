@@ -14,6 +14,7 @@ type ListWithItemsAndContent = Prisma.ListGetPayload<{
             title: true
             year: true
             imageUrl: true
+            director: true
           }
         }
       }
@@ -45,7 +46,7 @@ export async function createList(
       ownerId,
       title,
       description: input.description?.trim() || null,
-      visibility: input.visibility ?? "PRIVATE",
+      visibility: input.visibility ?? "PUBLIC",
       items:
         initialItemIds.length > 0
           ? {
@@ -88,6 +89,7 @@ export async function getListById(listId: string, viewerUserId?: string | null) 
               title: true,
               year: true,
               imageUrl: true,
+              director: true,
             },
           },
         },
@@ -121,6 +123,7 @@ export async function getPublicListById(listId: string) {
               title: true,
               year: true,
               imageUrl: true,
+              director: true,
             },
           },
         },
@@ -198,11 +201,17 @@ export async function addListItem(
             title: true,
             year: true,
             imageUrl: true,
+            director: true,
           },
         },
       },
     })
   })
+}
+
+export async function deleteList(listId: string, ownerId: string) {
+  await assertListOwnership(listId, ownerId)
+  await prisma.list.delete({ where: { id: listId } })
 }
 
 export async function removeListItem(listId: string, ownerId: string, itemId: string) {
@@ -261,6 +270,16 @@ export async function reorderListItems(
       }
     }
 
+    // Two-phase update: (listId, position) is unique, so we cannot assign final
+    // positions in one pass without transient collisions (e.g. swap 0↔1).
+    const TEMP_BASE = 1_000_000
+    for (let i = 0; i < rows.length; i += 1) {
+      await tx.listItem.update({
+        where: { listId_itemId: { listId, itemId: rows[i].itemId } },
+        data: { position: TEMP_BASE + i },
+      })
+    }
+
     for (let i = 0; i < uniqueOrdered.length; i += 1) {
       await tx.listItem.update({
         where: { listId_itemId: { listId, itemId: uniqueOrdered[i] } },
@@ -281,6 +300,7 @@ export async function reorderListItems(
                 title: true,
                 year: true,
                 imageUrl: true,
+                director: true,
               },
             },
           },
