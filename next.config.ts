@@ -19,6 +19,18 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      // TMDb poster images (imported catalog)
+      {
+        protocol: "https",
+        hostname: "image.tmdb.org",
+        pathname: "/**",
+      },
+      // Google Books cover/thumbnail URLs (imported catalog)
+      {
+        protocol: "https",
+        hostname: "books.google.com",
+        pathname: "/**",
+      },
       // Google OAuth profile images
       {
         protocol: "https",

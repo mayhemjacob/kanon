@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+
 type ItemStatus = { saved: boolean; reviewed: boolean; reviewId?: string };
 
 export type HomeReview = {
@@ -332,7 +334,10 @@ export function HomePageClient({
           </section>
         ) : (
           <section className="space-y-4 pb-20">
-            {filtered.map((review, index) => (
+            {filtered.map((review, index) => {
+              const userAvatarSrc = normalizeItemImageUrlForNext(review.userImage);
+              const itemPosterSrc = normalizeItemImageUrlForNext(review.itemImageUrl);
+              return (
               <article
                 key={review.id}
                 className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5"
@@ -342,16 +347,16 @@ export function HomePageClient({
                     href={`/profile/${encodeURIComponent(review.userName)}`}
                     className="flex h-9 w-9 shrink-0 overflow-hidden rounded-full bg-zinc-200 hover:opacity-90 transition-opacity"
                   >
-                    {review.userImage ? (
+                    {userAvatarSrc ? (
                       <Image
-                        src={review.userImage}
+                        src={userAvatarSrc}
                         alt=""
                         width={36}
                         height={36}
                         className="h-full w-full object-cover"
                         sizes="36px"
                         priority={index === 0}
-                        unoptimized={imageNeedsUnoptimized(review.userImage)}
+                        unoptimized={imageNeedsUnoptimized(userAvatarSrc)}
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-xs font-medium text-white">
@@ -455,17 +460,15 @@ export function HomePageClient({
                     >
                       <div className="flex min-h-0 w-20 min-w-[4.5rem] shrink-0 flex-col justify-start overflow-hidden rounded-lg">
                         <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-zinc-800">
-                          {review.itemImageUrl ? (
+                          {itemPosterSrc ? (
                             <Image
-                              src={review.itemImageUrl}
+                              src={itemPosterSrc}
                               alt=""
                               fill
                               className="object-cover"
                               sizes="80px"
-                              priority={index === 0 && !review.userImage}
-                              unoptimized={imageNeedsUnoptimized(
-                                review.itemImageUrl
-                              )}
+                              priority={index === 0 && !userAvatarSrc}
+                              unoptimized={imageNeedsUnoptimized(itemPosterSrc)}
                             />
                           ) : null}
                           <div className="pointer-events-none absolute inset-0 flex items-start justify-start p-1.5">
@@ -567,7 +570,8 @@ export function HomePageClient({
                   </div>
                 </div>
               </article>
-            ))}
+            );
+            })}
           </section>
         )}
       </div>

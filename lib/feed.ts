@@ -1,6 +1,7 @@
 import type { HomeReview } from "@/app/HomePageClient";
 import type { ItemStatus } from "@/app/api/items/status/route";
 import { formatTimeAgo } from "@/lib/date";
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
 import { unstable_cache } from "next/cache";
 
@@ -30,18 +31,25 @@ type FeedRow = {
   my_review_id: string | null;
 };
 
-export const getHomeFeed = unstable_cache(
-  async (
-    userId: string
-  ): Promise<{ reviews: HomeReview[]; initialStatus: Record<string, ItemStatus> }> => {
-    /*
-     * Home feed (single round-trip, no N+1):
-     * - Restrict to reviews whose author is someone the viewer follows via INNER JOIN Follow
-     *   (same as WHERE userId IN (SELECT followingId ...), often friendlier to the planner).
-     * - ORDER BY + LIMIT use @@index([userId, createdAt(sort: Desc)]) on Review for
-     *   bitmap/merge plans over followees; Follow rows are found via @@unique([followerId, followingId]).
-     * - SavedItem / self-join Review use @@unique([userId, itemId]) on those tables.
-     */
+/*
+ * Home feed (single round-trip, no N+1):
+ * - Restrict to reviews whose author is someone the viewer follows via INNER JOIN Follow
+ *   (same as WHERE userId IN (SELECT followingId ...), often friendlier to the planner).
+ * - ORDER BY + LIMIT use @@index([userId, createdAt(sort: Desc)]) on Review for
+ *   bitmap/merge plans over followees; Follow rows are found via @@unique([followerId, followingId]).
+ * - SavedItem / self-join Review use @@unique([userId, itemId]) on those tables.
+ *
+ * Cache key must include `userId` (personalized feed). Image URLs are normalized (https upgrade,
+ * drop data/blob/huge strings) so the serialized cache stays under Next.js’s ~2MB limit.
+ */
+export async function getHomeFeed(
+  userId: string,
+): Promise<{ reviews: HomeReview[]; initialStatus: Record<string, ItemStatus> }> {
+  return unstable_cache(
+    async (): Promise<{
+      reviews: HomeReview[];
+      initialStatus: Record<string, ItemStatus>;
+    }> => {
     const rows = await prisma.$queryRaw<FeedRow[]>`
     SELECT
       r.id,
@@ -89,10 +97,14 @@ export const getHomeFeed = unstable_cache(
         itemId: row.itemId,
         userName,
         avatarInitial,
-        userImage: row.user_image ?? null,
+        userImage: normalizeItemImageUrlForNext(row.user_image, {
+          omitDataAndBlob: true,
+        }),
         rating: row.rating,
         itemType: row.item_type as "FILM" | "SHOW" | "BOOK",
-        itemImageUrl: row.item_imageurl ?? null,
+        itemImageUrl: normalizeItemImageUrlForNext(row.item_imageurl, {
+          omitDataAndBlob: true,
+        }),
         title: row.item_title,
         body: row.body ?? null,
         timeAgo: formatTimeAgo(row.createdAt),
@@ -109,6 +121,8 @@ export const getHomeFeed = unstable_cache(
     }
 
     return { reviews, initialStatus };
-  },
-  ["feed"],
-  { revalidate: 10 })
+    },
+    ["feed", userId],
+    { revalidate: 10 },
+  )();
+}

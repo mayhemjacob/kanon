@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+
 export type ItemType = "FILM" | "SHOW" | "BOOK";
 
 export type ItemCardItem = {
@@ -72,6 +74,8 @@ export function ItemCard({
   const typeLabel =
     item.type === "FILM" ? "FILM" : item.type === "SHOW" ? "SERIES" : "BOOK";
 
+  const coverSrc = normalizeItemImageUrlForNext(item.imageUrl);
+
   return (
     <div className="flex items-stretch gap-3 px-4 py-3 text-sm transition-colors hover:bg-zinc-50 sm:px-5">
       <Link
@@ -80,15 +84,15 @@ export function ItemCard({
       >
         {/* Portada: mismo ratio 40×56 (5/7); crece en altura con la fila; ancho derivado del ratio */}
         <div className="relative w-auto shrink-0 self-stretch overflow-hidden rounded-lg bg-zinc-200 aspect-[5/7] min-h-16 min-w-10">
-          {item.imageUrl ? (
+          {coverSrc ? (
             <Image
-              src={item.imageUrl}
+              src={coverSrc}
               alt=""
               fill
               className="object-cover"
               sizes="56px"
               priority={coverImagePriority}
-              unoptimized={imageNeedsUnoptimized(item.imageUrl)}
+              unoptimized={imageNeedsUnoptimized(coverSrc)}
             />
           ) : null}
         </div>

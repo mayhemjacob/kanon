@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { formatTimeAgo } from "@/lib/date";
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 
 export type ProfileState = {
   handle: string | null;
@@ -148,6 +149,8 @@ export default function ProfilePageClient({
 
   const displayHandle = profile.handle ? `@${profile.handle}` : "";
 
+  const profileAvatarSrc = normalizeItemImageUrlForNext(profile.image);
+
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-6 py-10 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] space-y-6 md:pb-8">
@@ -161,9 +164,9 @@ export default function ProfilePageClient({
               >
                 {profileLoading ? (
                   <div className="h-full w-full animate-pulse bg-zinc-300" />
-                ) : profile.image && !imageError ? (
+                ) : profileAvatarSrc && !imageError ? (
                   <Image
-                    src={profile.image}
+                    src={profileAvatarSrc}
                     alt=""
                     width={80}
                     height={80}
@@ -171,8 +174,8 @@ export default function ProfilePageClient({
                     sizes="80px"
                     onError={() => setImageError(true)}
                     unoptimized={
-                      profile.image.startsWith("data:") ||
-                      profile.image.startsWith("blob:")
+                      profileAvatarSrc.startsWith("data:") ||
+                      profileAvatarSrc.startsWith("blob:")
                     }
                   />
                 ) : null}
@@ -445,23 +448,25 @@ export default function ProfilePageClient({
                 className="grid grid-cols-2 gap-3 pt-4 sm:gap-4"
                 data-profile-keep-menu-open
               >
-                {filteredCards.map((card) => (
+                {filteredCards.map((card) => {
+                  const cardCoverSrc = normalizeItemImageUrlForNext(card.imageUrl);
+                  return (
                   <Link
                     key={card.id}
                     href={`/items/${card.itemId}/reviews/${card.reviewId}`}
                     className="relative block overflow-hidden rounded-2xl bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2"
                   >
                     <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-300">
-                      {card.imageUrl ? (
+                      {cardCoverSrc ? (
                         <Image
-                          src={card.imageUrl}
+                          src={cardCoverSrc}
                           alt=""
                           fill
                           className="object-cover"
                           sizes="(max-width: 640px) 45vw, 320px"
                           unoptimized={
-                            card.imageUrl.startsWith("data:") ||
-                            card.imageUrl.startsWith("blob:")
+                            cardCoverSrc.startsWith("data:") ||
+                            cardCoverSrc.startsWith("blob:")
                           }
                         />
                       ) : null}
@@ -483,7 +488,8 @@ export default function ProfilePageClient({
                       </div>
                     </div>
                   </Link>
-                ))}
+                );
+                })}
               </div>
 
               {filteredCards.length === 0 && (

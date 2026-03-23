@@ -13,6 +13,12 @@ enum ItemType {
   BOOK
 }
 
+enum ItemExternalSource {
+  TMDB_MOVIE
+  TMDB_TV
+  GOOGLE_BOOKS
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -93,10 +99,17 @@ model Item {
   tags        String[] @default([])
   createdAt   DateTime @default(now())
 
+  /// Provenance for catalog imports; null for user-created items.
+  externalSource  ItemExternalSource?
+  externalId      String?
+  originalTitle   String?
+  sourceUpdatedAt DateTime?
+
   reviews Review[]
   savedBy SavedItem[]
 
   @@index([createdAt(sort: Desc)])
+  @@unique([externalSource, externalId])
 }
 
 model SavedItem {

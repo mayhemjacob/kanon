@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useEffect, useRef, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+
 type ItemPosterProps = {
   itemId: string;
   title: string;
@@ -156,7 +158,8 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
     }
   }
 
-  const displayUrl = imageUrl && !imageError ? imageUrl : null;
+  const displayUrl =
+    imageUrl && !imageError ? normalizeItemImageUrlForNext(imageUrl) : null;
 
   return (
     <>
@@ -210,7 +213,9 @@ export function ItemPoster({ itemId, title, imageUrl: initialImageUrl }: ItemPos
             <div className="relative mb-4 aspect-[3/4] overflow-hidden rounded-2xl bg-zinc-200">
               {previewImage && !imageError ? (
                 <Image
-                  src={previewImage}
+                  src={
+                    normalizeItemImageUrlForNext(previewImage) ?? previewImage
+                  }
                   alt=""
                   fill
                   className="object-cover"

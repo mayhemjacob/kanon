@@ -1,3 +1,4 @@
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
@@ -174,6 +175,7 @@ export default async function ItemReviewPage({
   const { review, saved, reviewedByMe, canEdit, myReviewId } = data;
   const item = data.review.item;
   const user = review.user;
+  const itemCoverSrc = normalizeItemImageUrlForNext(item.imageUrl);
 
   const handle =
     user?.handle != null
@@ -211,16 +213,16 @@ export default async function ItemReviewPage({
           <div className="mt-4 flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-1 gap-4">
               <div className="relative h-24 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
-                {item.imageUrl ? (
+                {itemCoverSrc ? (
                   <Image
-                    src={item.imageUrl}
+                    src={itemCoverSrc}
                     alt=""
                     fill
                     className="object-cover"
                     sizes="64px"
                     unoptimized={
-                      item.imageUrl.startsWith("data:") ||
-                      item.imageUrl.startsWith("blob:")
+                      itemCoverSrc.startsWith("data:") ||
+                      itemCoverSrc.startsWith("blob:")
                     }
                   />
                 ) : null}

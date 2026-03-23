@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+
 type ReviewShareModalProps = {
   open: boolean;
   onClose: () => void;
@@ -110,6 +112,7 @@ export function ReviewShareModal({
   }
 
   const { main: ratingMain } = ratingParts(rating);
+  const shareCoverSrc = normalizeItemImageUrlForNext(itemImageUrl);
 
   if (!open) return null;
 
@@ -155,14 +158,14 @@ export function ReviewShareModal({
 
         <div className="mb-4 flex gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
           <div className="relative h-[72px] w-[52px] shrink-0 overflow-hidden rounded-lg bg-zinc-200">
-            {itemImageUrl ? (
+            {shareCoverSrc ? (
               <Image
-                src={itemImageUrl}
+                src={shareCoverSrc}
                 alt=""
                 fill
                 className="object-cover"
                 sizes="52px"
-                unoptimized={imageNeedsUnoptimized(itemImageUrl)}
+                unoptimized={imageNeedsUnoptimized(shareCoverSrc)}
               />
             ) : null}
           </div>

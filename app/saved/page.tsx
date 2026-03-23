@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+
 type ItemType = "FILM" | "SHOW" | "BOOK";
 
 type SavedItem = {
@@ -142,16 +144,18 @@ export default function SavedPage() {
               </div>
             ))
           ) : (
-          filtered.map((item, index) => (
+          filtered.map((item, index) => {
+            const coverSrc = normalizeItemImageUrlForNext(item.imageUrl);
+            return (
             <Link
               key={item.itemId}
               href={`/items/${item.itemId}`}
               className="relative block overflow-hidden rounded-2xl bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2"
             >
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-300">
-                {item.imageUrl ? (
+                {coverSrc ? (
                   <Image
-                    src={item.imageUrl}
+                    src={coverSrc}
                     alt=""
                     fill
                     className="object-cover"
@@ -160,7 +164,7 @@ export default function SavedPage() {
                       index === firstFilteredCoverIndex &&
                       firstFilteredCoverIndex !== -1
                     }
-                    unoptimized={imageNeedsUnoptimized(item.imageUrl)}
+                    unoptimized={imageNeedsUnoptimized(coverSrc)}
                   />
                 ) : null}
                 <div className="pointer-events-none absolute inset-0 flex items-start justify-start p-1.5">
@@ -194,7 +198,8 @@ export default function SavedPage() {
                 </span>
               </div>
             </Link>
-          ))
+          );
+          })
           )}
         </div>
 

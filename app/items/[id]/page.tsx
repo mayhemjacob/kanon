@@ -1,3 +1,4 @@
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
@@ -266,19 +267,21 @@ export default async function ItemPage({ params }: ItemPageProps) {
         <section className="mt-10 min-w-0">
           <h2 className="text-sm font-medium text-zinc-900">Similar Content</h2>
           <div className="mt-4 flex min-w-0 gap-4 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-            {similar.map((item) => (
+            {similar.map((item) => {
+              const simCover = normalizeItemImageUrlForNext(item.imageUrl);
+              return (
               <Link key={item.id} href={`/items/${item.id}`} className="w-32 shrink-0 sm:w-36">
                 <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-zinc-200">
-                  {item.imageUrl ? (
+                  {simCover ? (
                     <Image
-                      src={item.imageUrl}
+                      src={simCover}
                       alt=""
                       fill
                       className="object-cover"
                       sizes="(max-width: 640px) 128px, 144px"
                       unoptimized={
-                        item.imageUrl.startsWith("data:") ||
-                        item.imageUrl.startsWith("blob:")
+                        simCover.startsWith("data:") ||
+                        simCover.startsWith("blob:")
                       }
                     />
                   ) : null}
@@ -309,7 +312,8 @@ export default async function ItemPage({ params }: ItemPageProps) {
                   <div className="pb-1 text-[11px] text-zinc-500">{item.year}</div>
                 )}
               </Link>
-            ))}
+            );
+            })}
           </div>
         </section>
       </div>

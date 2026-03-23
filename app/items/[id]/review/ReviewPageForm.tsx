@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+
 export type ReviewItemInfo = {
   id: string;
   title: string;
@@ -25,6 +27,7 @@ export function ReviewPageForm({ item }: { item: ReviewItemInfo }) {
 
   const rating = whole !== null ? whole + decimal / 10 : null;
   const showFineTune = whole !== null;
+  const itemCoverSrc = normalizeItemImageUrlForNext(item.imageUrl);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -83,16 +86,16 @@ export function ReviewPageForm({ item }: { item: ReviewItemInfo }) {
         {/* Item summary */}
         <div className="mb-8 flex gap-4 rounded-2xl border border-zinc-200 bg-white p-4">
           <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
-            {item.imageUrl ? (
+            {itemCoverSrc ? (
               <Image
-                src={item.imageUrl}
+                src={itemCoverSrc}
                 alt=""
                 fill
                 className="object-cover"
                 sizes="56px"
                 unoptimized={
-                  item.imageUrl.startsWith("data:") ||
-                  item.imageUrl.startsWith("blob:")
+                  itemCoverSrc.startsWith("data:") ||
+                  itemCoverSrc.startsWith("blob:")
                 }
               />
             ) : null}

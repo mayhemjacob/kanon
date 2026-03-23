@@ -1,3 +1,4 @@
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
@@ -160,6 +161,8 @@ export default async function ItemReviewsPage({
           ).toFixed(1)
         );
 
+  const itemCoverSrc = normalizeItemImageUrlForNext(item.imageUrl);
+
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
@@ -190,16 +193,16 @@ export default async function ItemReviewsPage({
         {/* Item summary */}
         <div className="mb-8 flex gap-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4">
           <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-200">
-            {item.imageUrl ? (
+            {itemCoverSrc ? (
               <Image
-                src={item.imageUrl}
+                src={itemCoverSrc}
                 alt=""
                 fill
                 className="object-cover"
                 sizes="56px"
                 unoptimized={
-                  item.imageUrl.startsWith("data:") ||
-                  item.imageUrl.startsWith("blob:")
+                  itemCoverSrc.startsWith("data:") ||
+                  itemCoverSrc.startsWith("blob:")
                 }
               />
             ) : null}

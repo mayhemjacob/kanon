@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { formatReviewDate } from "@/lib/date";
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
 
 function displayName(handle: string | null, name: string | null): string {
@@ -62,6 +63,8 @@ export default async function PublicSharedReviewPage({
   const user = review.user;
   const item = review.item;
   const username = displayName(user?.handle ?? null, user?.name ?? null);
+  const heroCoverSrc = normalizeItemImageUrlForNext(item.imageUrl);
+  const reviewerAvatarSrc = normalizeItemImageUrlForNext(user?.image ?? null);
 
   const rating = review.rating;
   const ratingDisplay =
@@ -95,15 +98,15 @@ export default async function PublicSharedReviewPage({
           </p>
           <div className="flex items-center gap-3 rounded-2xl border border-zinc-100 bg-zinc-50/80 px-4 py-3.5">
             <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-200">
-              {user?.image ? (
+              {reviewerAvatarSrc ? (
                 <Image
-                  src={user.image}
+                  src={reviewerAvatarSrc}
                   alt=""
                   width={44}
                   height={44}
                   className="h-full w-full object-cover"
                   sizes="44px"
-                  unoptimized={imageNeedsUnoptimized(user.image)}
+                  unoptimized={imageNeedsUnoptimized(reviewerAvatarSrc)}
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-sm font-medium text-zinc-600">
@@ -120,14 +123,14 @@ export default async function PublicSharedReviewPage({
           <div className="flex flex-col gap-8 md:flex-row md:items-start md:gap-10">
             <div className="mx-auto w-[min(100%,200px)] shrink-0 md:mx-0 md:w-[180px] md:shrink-0">
               <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-zinc-100 shadow-md">
-                {item.imageUrl ? (
+                {heroCoverSrc ? (
                   <Image
-                    src={item.imageUrl}
+                    src={heroCoverSrc}
                     alt=""
                     fill
                     className="object-cover"
                     sizes="(max-width: 768px) 200px, 180px"
-                    unoptimized={imageNeedsUnoptimized(item.imageUrl)}
+                    unoptimized={imageNeedsUnoptimized(heroCoverSrc)}
                     priority
                   />
                 ) : null}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatTimeAgo } from "@/lib/date";
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 
 type SortOption = "reviewDate" | "rating" | "publicationYear";
 
@@ -108,6 +109,8 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
     }
   }, [initialProfile.handle, following]);
 
+  const handleAvatarSrc = normalizeItemImageUrlForNext(initialProfile.image);
+
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-6 py-10 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] space-y-6 md:pb-8">
@@ -125,17 +128,17 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
         </div>
         <header className="text-center space-y-2">
           <div className="relative mx-auto h-20 w-20 overflow-hidden rounded-full bg-zinc-200">
-            {initialProfile.image ? (
+            {handleAvatarSrc ? (
               <Image
-                src={initialProfile.image}
+                src={handleAvatarSrc}
                 alt=""
                 width={80}
                 height={80}
                 className="h-full w-full object-cover"
                 sizes="80px"
                 unoptimized={
-                  initialProfile.image.startsWith("data:") ||
-                  initialProfile.image.startsWith("blob:")
+                  handleAvatarSrc.startsWith("data:") ||
+                  handleAvatarSrc.startsWith("blob:")
                 }
               />
             ) : null}
@@ -306,23 +309,25 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
             {initialProfile.cards.length === 0 ? (
               <p className="col-span-2 text-center text-sm text-zinc-500 py-8">No reviews yet.</p>
             ) : (
-              filteredCards.map((card) => (
+              filteredCards.map((card) => {
+                const cardCoverSrc = normalizeItemImageUrlForNext(card.imageUrl);
+                return (
                 <Link
                   key={card.id}
                   href={`/items/${card.itemId}/reviews/${card.reviewId}`}
                   className="relative block overflow-hidden rounded-2xl bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2"
                 >
                   <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-300">
-                    {card.imageUrl ? (
+                    {cardCoverSrc ? (
                       <Image
-                        src={card.imageUrl}
+                        src={cardCoverSrc}
                         alt=""
                         fill
                         className="object-cover"
                         sizes="(max-width: 640px) 45vw, 320px"
                         unoptimized={
-                          card.imageUrl.startsWith("data:") ||
-                          card.imageUrl.startsWith("blob:")
+                          cardCoverSrc.startsWith("data:") ||
+                          cardCoverSrc.startsWith("blob:")
                         }
                       />
                     ) : null}
@@ -344,7 +349,8 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
                     </div>
                   </div>
                 </Link>
-              ))
+              );
+              })
             )}
           </div>
         </section>
