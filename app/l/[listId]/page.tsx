@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
@@ -35,6 +36,26 @@ function createdDateLabel(createdAt: Date): string {
   }).format(createdAt);
 }
 
+function fallbackAppOrigin(): string {
+  const fromPublic = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (fromPublic) return fromPublic;
+  const fromProd = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (fromProd) return `https://${fromProd}`;
+  const fromVercel = process.env.VERCEL_URL?.trim();
+  if (fromVercel) return `https://${fromVercel}`;
+  return "http://localhost:3000";
+}
+
+async function requestOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto =
+    h.get("x-forwarded-proto") ??
+    (host?.includes("localhost") ? "http" : "https");
+  if (!host) return fallbackAppOrigin();
+  return `${proto}://${host}`;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -54,7 +75,9 @@ export async function generateMetadata({
   const curator = listCuratorLabel(list.owner.handle, list.owner.name);
   const title = clipMeta(`${list.title} · ${curator} · Kanon`, 72);
   const description = publicListDescription(list.description ?? null, list.title);
+  const origin = await requestOrigin();
   const ogImagePath = `/l/${encodeURIComponent(token)}/opengraph-image`;
+  const ogImageUrl = new URL(ogImagePath, origin).toString();
 
   return {
     title,
@@ -65,7 +88,7 @@ export async function generateMetadata({
       type: "website",
       images: [
         {
-          url: ogImagePath,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
           alt: clipMeta(`${list.title} by ${curator}`, 120),
@@ -76,7 +99,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: clipMeta(`${list.title} · List`, 64),
       description,
-      images: [ogImagePath],
+      images: [ogImageUrl],
     },
   };
 }
