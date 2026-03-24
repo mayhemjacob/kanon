@@ -24,6 +24,12 @@ enum ListVisibility {
   PUBLIC
 }
 
+enum ReviewRatingReactionType {
+  TOO_LOW
+  ABOUT_RIGHT
+  TOO_HIGH
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -42,6 +48,8 @@ model User {
   lists      List[]
   following  Follow[]    @relation("FollowFollowing")
   followers  Follow[]    @relation("FollowFollowers")
+
+  reviewRatingReactions ReviewRatingReaction[]
 
   createdAt DateTime @default(now())
 }
@@ -193,7 +201,24 @@ model Review {
   user User @relation(fields: [userId], references: [id])
   item Item @relation(fields: [itemId], references: [id])
 
+  reviewRatingReactions ReviewRatingReaction[]
+
   @@unique([userId, itemId])
   @@index([userId, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
+}
+
+model ReviewRatingReaction {
+  id           String                   @id @default(cuid())
+  reviewId     String
+  userId       String
+  reactionType ReviewRatingReactionType
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
 }

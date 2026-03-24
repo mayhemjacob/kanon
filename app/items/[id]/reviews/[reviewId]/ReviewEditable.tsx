@@ -1,12 +1,24 @@
 "use client";
 
+import type { RatingReactionSummary } from "@/lib/reviewRatingReactions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ReviewRatingReactions } from "./ReviewRatingReactions";
 
 type ReviewEditableProps = {
   reviewId: string;
   initialRating: number;
   initialBody: string | null;
+  reactionSummary?: RatingReactionSummary;
+  reactionSignedIn?: boolean;
+  reactionOffline?: boolean;
+};
+
+const emptyReactions: RatingReactionSummary = {
+  tooLowCount: 0,
+  aboutRightCount: 0,
+  tooHighCount: 0,
+  currentUserReaction: null,
 };
 
 function EditIcon() {
@@ -27,6 +39,9 @@ export function ReviewEditable({
   reviewId,
   initialRating,
   initialBody,
+  reactionSummary = emptyReactions,
+  reactionSignedIn = false,
+  reactionOffline = false,
 }: ReviewEditableProps) {
   const router = useRouter();
   const { whole: initWhole, decimal: initDecimal } = ratingToParts(initialRating);
@@ -112,16 +127,24 @@ export function ReviewEditable({
           <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
             Rating
           </div>
-          {editSection !== "rating" && (
-            <button
-              type="button"
-              onClick={openRatingEdit}
-              aria-label="Edit rating"
-              className="inline-flex items-center justify-center rounded-full bg-zinc-100 p-1.5 text-zinc-600 hover:bg-zinc-200"
-            >
-              <EditIcon />
-            </button>
-          )}
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+            <ReviewRatingReactions
+              reviewId={reviewId}
+              initialSummary={reactionSummary}
+              signedIn={reactionSignedIn}
+              offline={reactionOffline}
+            />
+            {editSection !== "rating" && (
+              <button
+                type="button"
+                onClick={openRatingEdit}
+                aria-label="Edit rating"
+                className="inline-flex shrink-0 items-center justify-center rounded-full bg-zinc-100 p-1.5 text-zinc-600 hover:bg-zinc-200"
+              >
+                <EditIcon />
+              </button>
+            )}
+          </div>
         </div>
         {saveError && editSection === "rating" ? (
           <p className="text-sm text-red-600">{saveError}</p>

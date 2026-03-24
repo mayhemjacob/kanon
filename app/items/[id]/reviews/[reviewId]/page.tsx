@@ -1,3 +1,5 @@
+import { getReviewRatingReactionSummary } from "@/lib/getReviewRatingReactionSummary";
+import type { RatingReactionSummary } from "@/lib/reviewRatingReactions";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -8,6 +10,7 @@ import { notFound } from "next/navigation";
 import { formatReviewDate } from "@/lib/date";
 import { ReviewEditable } from "./ReviewEditable";
 import { ReviewPageActions } from "./ReviewPageActions";
+import { ReviewRatingReactions } from "./ReviewRatingReactions";
 import { ReviewShareSection } from "./ReviewShareSection";
 
 function formatTimeAgo(date: Date): string {
@@ -53,6 +56,14 @@ type ReviewPageData = {
   reviewedByMe: boolean;
   canEdit: boolean;
   myReviewId?: string;
+  reactionSummary: RatingReactionSummary;
+};
+
+const emptyReactionSummary: RatingReactionSummary = {
+  tooLowCount: 0,
+  aboutRightCount: 0,
+  tooHighCount: 0,
+  currentUserReaction: null,
 };
 
 const offlineReview: ReviewPageData = {
@@ -79,6 +90,7 @@ const offlineReview: ReviewPageData = {
   },
   saved: false,
   reviewedByMe: false,
+  reactionSummary: emptyReactionSummary,
 };
 
 export default async function ItemReviewPage({
@@ -138,6 +150,11 @@ export default async function ItemReviewPage({
 
     const canEdit = !!(session?.user?.id && review.userId === session.user.id);
 
+    const reactionSummary = await getReviewRatingReactionSummary(
+      reviewId,
+      session?.user?.id
+    );
+
     data = {
       review: {
         id: review.id,
@@ -165,6 +182,7 @@ export default async function ItemReviewPage({
       reviewedByMe,
       canEdit,
       myReviewId,
+      reactionSummary,
     };
   }
 
@@ -172,7 +190,8 @@ export default async function ItemReviewPage({
     return notFound();
   }
 
-  const { review, saved, reviewedByMe, canEdit, myReviewId } = data;
+  const { review, saved, reviewedByMe, canEdit, myReviewId, reactionSummary } =
+    data;
   const item = data.review.item;
   const user = review.user;
   const itemCoverSrc = normalizeItemImageUrlForNext(item.imageUrl);
@@ -309,12 +328,23 @@ export default async function ItemReviewPage({
               reviewId={review.id}
               initialRating={review.rating}
               initialBody={review.body}
+              reactionSummary={reactionSummary}
+              reactionSignedIn={!!session?.user?.id}
+              reactionOffline={offline}
             />
           ) : (
             <>
               <div className="space-y-2 pt-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-                  Rating
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                    Rating
+                  </div>
+                  <ReviewRatingReactions
+                    reviewId={review.id}
+                    initialSummary={reactionSummary}
+                    signedIn={!!session?.user?.id}
+                    offline={offline}
+                  />
                 </div>
                 <div className="rounded-2xl border border-zinc-100 bg-zinc-50 py-6 text-center">
                   <span className="text-4xl font-semibold tracking-tight text-zinc-900">
