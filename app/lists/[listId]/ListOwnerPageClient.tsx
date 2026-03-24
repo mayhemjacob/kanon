@@ -430,57 +430,83 @@ export function ListOwnerPageClient({
     <main className="min-h-screen bg-white pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-8">
       {/* Top bar */}
       <div className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="flex items-center gap-1 text-sm font-medium text-zinc-700 hover:text-zinc-900"
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-            Back
-          </button>
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        {editing ? (
+          <div className="relative mx-auto flex h-14 max-w-2xl items-center px-4 sm:px-6">
             <button
               type="button"
-              onClick={() => void deleteList()}
-              disabled={deleteBusy}
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-red-600 hover:bg-red-50 disabled:opacity-40"
-              aria-label="Delete list"
+              onClick={cancelEditing}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-700 hover:bg-zinc-100"
+              aria-label="Back"
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18" />
-                <path d="M8 6V4h8v2" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                <path d="M10 11v6M14 11v6" />
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 18-6-6 6-6" />
               </svg>
             </button>
+            <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-xl font-semibold leading-none text-zinc-900">
+              Edit List
+            </h1>
             <button
               type="button"
-              onClick={editing ? cancelEditing : startEditing}
-              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+              disabled={saveBusy}
+              onClick={() => void saveListMeta()}
+              className="ml-auto inline-flex h-10 items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-40"
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-              {editing ? "Cancel" : "Edit"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void shareList()}
-              className="flex items-center gap-1.5 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                <polyline points="16 6 12 2 8 6" />
-                <line x1="12" x2="12" y1="2" y2="15" />
-              </svg>
-              Share
+              {saveBusy ? "Saving…" : "Save"}
             </button>
           </div>
-        </div>
+        ) : (
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex items-center gap-1 text-sm font-medium text-zinc-700 hover:text-zinc-900"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+              Back
+            </button>
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => void deleteList()}
+                disabled={deleteBusy}
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-red-600 hover:bg-red-50 disabled:opacity-40"
+                aria-label="Delete list"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                  <path d="M10 11v6M14 11v6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={startEditing}
+                className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => void shareList()}
+                className="flex items-center gap-1.5 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                  <polyline points="16 6 12 2 8 6" />
+                  <line x1="12" x2="12" y1="2" y2="15" />
+                </svg>
+                Share
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mx-auto max-w-2xl px-4 pt-6 sm:px-6 sm:pt-8">
@@ -506,23 +532,6 @@ export function ListOwnerPageClient({
               placeholder="Description (optional)"
             />
             {editError ? <p className="text-sm text-red-600">{editError}</p> : null}
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={cancelEditing}
-                className="rounded-full px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-200"
-              >
-                Discard
-              </button>
-              <button
-                type="button"
-                disabled={saveBusy}
-                onClick={() => void saveListMeta()}
-                className="rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-40"
-              >
-                {saveBusy ? "Saving…" : "Save"}
-              </button>
-            </div>
           </div>
         ) : (
           <>
@@ -533,40 +542,44 @@ export function ListOwnerPageClient({
           </>
         )}
 
-        {/* Curator */}
-        <div className="mt-6 flex items-center gap-3">
-          <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-200">
-            {avatarSrc ? (
-              <Image
-                src={avatarSrc}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="44px"
-                unoptimized={avatarSrc.startsWith("data:") || avatarSrc.startsWith("blob:")}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm font-medium text-zinc-500">
-                {curatorLabel.slice(0, 1).toUpperCase()}
+        {!editing ? (
+          <>
+            {/* Curator */}
+            <div className="mt-6 flex items-center gap-3">
+              <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-200">
+                {avatarSrc ? (
+                  <Image
+                    src={avatarSrc}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="44px"
+                    unoptimized={avatarSrc.startsWith("data:") || avatarSrc.startsWith("blob:")}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm font-medium text-zinc-500">
+                    {curatorLabel.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs text-zinc-500">Curated by</p>
-            {curator.handle ? (
-              <Link
-                href={`/profile/${curator.handle}`}
-                className="font-semibold text-zinc-900 hover:underline"
-              >
-                {curatorLabel}
-              </Link>
-            ) : (
-              <p className="font-semibold text-zinc-900">{curatorLabel}</p>
-            )}
-          </div>
-        </div>
+              <div className="min-w-0">
+                <p className="text-xs text-zinc-500">Curated by</p>
+                {curator.handle ? (
+                  <Link
+                    href={`/profile/${curator.handle}`}
+                    className="font-semibold text-zinc-900 hover:underline"
+                  >
+                    {curatorLabel}
+                  </Link>
+                ) : (
+                  <p className="font-semibold text-zinc-900">{curatorLabel}</p>
+                )}
+              </div>
+            </div>
 
-        <hr className="my-6 border-zinc-200" />
+            <hr className="my-6 border-zinc-200" />
+          </>
+        ) : null}
 
         <div className="flex items-end justify-between gap-3">
           <div>
