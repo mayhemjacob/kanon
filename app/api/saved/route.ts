@@ -12,6 +12,30 @@ function getSavedListClient() {
   return (prisma as unknown as { savedList?: { findMany: Function } }).savedList;
 }
 
+type PrismaSavedListRow = {
+  id: string;
+  list: {
+    id: string;
+    title: string;
+    description: string | null;
+    owner: { handle: string | null; name: string | null };
+    _count: { items: number };
+    items: Array<{
+      item: { id: string; imageUrl: string | null; type: string; title: string };
+    }>;
+  };
+};
+
+type RawSavedListRow = {
+  id: string;
+  listId: string;
+  title: string;
+  description: string | null;
+  ownerHandle: string | null;
+  ownerName: string | null;
+  itemCount: bigint;
+};
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -37,70 +61,61 @@ export async function GET() {
   }
 
   const savedListClient = getSavedListClient();
-  const [savedItems, savedLists] = await Promise.all([
-    prisma.savedItem.findMany({
-      where: { userId: user.id },
-      include: {
-        item: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            year: true,
-            imageUrl: true,
-          },
+  const savedItems = await prisma.savedItem.findMany({
+    where: { userId: user.id },
+    include: {
+      item: {
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          year: true,
+          imageUrl: true,
         },
       },
-      orderBy: { createdAt: "desc" },
-      take: SAVED_ITEMS_INITIAL_LIMIT,
-    }),
-    savedListClient?.findMany
-      ? savedListClient.findMany({
-          where: { userId: user.id },
-          include: {
-            list: {
-              select: {
-                id: true,
-                title: true,
-                description: true,
-                visibility: true,
-                owner: {
-                  select: { handle: true, name: true },
-                },
-                _count: {
-                  select: { items: true },
-                },
-                items: {
-                  orderBy: { position: "asc" },
-                  take: 2,
-                  select: {
-                    item: {
-                      select: {
-                        id: true,
-                        imageUrl: true,
-                        type: true,
-                        title: true,
-                      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: SAVED_ITEMS_INITIAL_LIMIT,
+  });
+
+  const savedLists: Array<PrismaSavedListRow | RawSavedListRow> = savedListClient?.findMany
+    ? ((await savedListClient.findMany({
+        where: { userId: user.id },
+        include: {
+          list: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              visibility: true,
+              owner: {
+                select: { handle: true, name: true },
+              },
+              _count: {
+                select: { items: true },
+              },
+              items: {
+                orderBy: { position: "asc" },
+                take: 2,
+                select: {
+                  item: {
+                    select: {
+                      id: true,
+                      imageUrl: true,
+                      type: true,
+                      title: true,
                     },
                   },
                 },
               },
             },
           },
-          orderBy: { createdAt: "desc" },
-          take: SAVED_LISTS_INITIAL_LIMIT,
-        })
-      : prisma.$queryRaw<
-          Array<{
-            id: string;
-            listId: string;
-            title: string;
-            description: string | null;
-            ownerHandle: string | null;
-            ownerName: string | null;
-            itemCount: bigint;
-          }>
-        >`
+        },
+        orderBy: { createdAt: "desc" },
+        take: SAVED_LISTS_INITIAL_LIMIT,
+      })) as PrismaSavedListRow[])
+    : await prisma
+        .$queryRaw<Array<RawSavedListRow>>`
           SELECT
             sl."id" AS "id",
             l."id" AS "listId",
@@ -119,17 +134,20 @@ export async function GET() {
           WHERE sl."userId" = ${user.id}
           ORDER BY sl."createdAt" DESC
           LIMIT ${SAVED_LISTS_INITIAL_LIMIT}
-        `.catch(() => []),
-  ]);
+        `
+        .catch(() => []);
 
-  const isPrismaSavedListRow = savedLists.some((row) => "list" in row);
+  const isPrismaSavedListRow = savedLists.some((row: PrismaSavedListRow | RawSavedListRow) => "list" in row);
+  const rawSavedLists: RawSavedListRow[] = isPrismaSavedListRow
+    ? []
+    : (savedLists as RawSavedListRow[]);
   const previewByListId = new Map<
     string,
     Array<{ id: string; imageUrl: string | null; type: string; title: string }>
   >();
 
-  if (!isPrismaSavedListRow && savedLists.length > 0) {
-    const listIds = savedLists.map((row) => row.listId);
+  if (rawSavedLists.length > 0) {
+    const listIds = rawSavedLists.map((row) => row.listId);
     const previewRows = await prisma
       .$queryRaw<
         Array<{

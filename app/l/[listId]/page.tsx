@@ -122,7 +122,7 @@ export default async function PublicListPage({
   const session = await getServerSession(authOptions);
   const savedRow = session?.user?.id
     ? await isListSavedByUser(session.user.id, list.id)
-    : null;
+    : false;
 
   const curator = listCuratorLabel(list.owner.handle, list.owner.name);
   const avatarSrc = normalizeItemImageUrlForNext(list.owner.image ?? null);

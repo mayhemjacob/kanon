@@ -29,11 +29,11 @@ export async function GET(req: Request) {
   if (ids.length === 0) return NextResponse.json({});
 
   const savedListClient = (prisma as unknown as { savedList?: { findMany: Function } }).savedList;
-  const rows = savedListClient?.findMany
-    ? await savedListClient.findMany({
+  const rows: Array<{ listId: string }> = savedListClient?.findMany
+    ? ((await savedListClient.findMany({
         where: { userId: session.user.id, listId: { in: ids } },
         select: { listId: true },
-      })
+      })) as Array<{ listId: string }>)
     : await prisma
         .$queryRaw<Array<{ listId: string }>>`
           SELECT "listId"
