@@ -9,24 +9,6 @@ import { prisma } from "@/lib/prisma";
 const SAVED_ITEMS_INITIAL_LIMIT = 40;
 const SAVED_LISTS_INITIAL_LIMIT = 40;
 
-function getSavedListClient() {
-  return (prisma as unknown as { savedList?: { findMany: Function } }).savedList;
-}
-
-type PrismaSavedListRow = {
-  id: string;
-  list: {
-    id: string;
-    title: string;
-    description: string | null;
-    owner: { handle: string | null; name: string | null };
-    _count: { items: number };
-    items: Array<{
-      item: { id: string; imageUrl: string | null; type: string; title: string };
-    }>;
-  };
-};
-
 type RawSavedListRow = {
   id: string;
   listId: string;
@@ -76,7 +58,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const savedListClient = getSavedListClient();
   const savedItems = await prisma.savedItem.findMany({
     where: { userId: user.id },
     include: {
@@ -94,69 +75,31 @@ export async function GET(req: NextRequest) {
     take: SAVED_ITEMS_INITIAL_LIMIT,
   });
 
-  const savedLists: Array<PrismaSavedListRow | RawSavedListRow> = savedListClient?.findMany
-    ? ((await savedListClient.findMany({
-        where: { userId: user.id },
-        include: {
-          list: {
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              visibility: true,
-              owner: {
-                select: { handle: true, name: true },
-              },
-              _count: {
-                select: { items: true },
-              },
-              items: {
-                orderBy: { position: "asc" },
-                take: 2,
-                select: {
-                  item: {
-                    select: {
-                      id: true,
-                      imageUrl: true,
-                      type: true,
-                      title: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: SAVED_LISTS_INITIAL_LIMIT,
-      })) as PrismaSavedListRow[])
-    : await prisma
-        .$queryRaw<Array<RawSavedListRow>>`
-          SELECT
-            sl."id" AS "id",
-            l."id" AS "listId",
-            l."title" AS "title",
-            l."description" AS "description",
-            u."handle" AS "ownerHandle",
-            u."name" AS "ownerName",
-            (
-              SELECT COUNT(*)::bigint
-              FROM "ListItem" li
-              WHERE li."listId" = l."id"
-            ) AS "itemCount"
-          FROM "SavedList" sl
-          JOIN "List" l ON l."id" = sl."listId"
-          JOIN "User" u ON u."id" = l."ownerId"
-          WHERE sl."userId" = ${user.id}
-          ORDER BY sl."createdAt" DESC
-          LIMIT ${SAVED_LISTS_INITIAL_LIMIT}
-        `
-        .catch(() => []);
+  // Use join-based query to avoid Prisma relation crashes on orphan SavedList rows.
+  const savedLists = await prisma
+    .$queryRaw<Array<RawSavedListRow>>`
+      SELECT
+        sl."id" AS "id",
+        l."id" AS "listId",
+        l."title" AS "title",
+        l."description" AS "description",
+        u."handle" AS "ownerHandle",
+        u."name" AS "ownerName",
+        (
+          SELECT COUNT(*)::bigint
+          FROM "ListItem" li
+          WHERE li."listId" = l."id"
+        ) AS "itemCount"
+      FROM "SavedList" sl
+      JOIN "List" l ON l."id" = sl."listId"
+      JOIN "User" u ON u."id" = l."ownerId"
+      WHERE sl."userId" = ${user.id}
+      ORDER BY sl."createdAt" DESC
+      LIMIT ${SAVED_LISTS_INITIAL_LIMIT}
+    `
+    .catch(() => []);
 
-  const isPrismaSavedListRow = savedLists.some((row: PrismaSavedListRow | RawSavedListRow) => "list" in row);
-  const rawSavedLists: RawSavedListRow[] = isPrismaSavedListRow
-    ? []
-    : (savedLists as RawSavedListRow[]);
+  const rawSavedLists: RawSavedListRow[] = savedLists;
   const previewByListId = new Map<
     string,
     Array<{ id: string; imageUrl: string | null; type: string; title: string }>
@@ -213,33 +156,15 @@ export async function GET(req: NextRequest) {
       year: s.item.year,
       imageUrl: s.item.imageUrl ?? null,
     })),
-    lists: savedLists.map((s) =>
-      "list" in s
-        ? {
-            id: s.id,
-            listId: s.list.id,
-            title: s.list.title,
-            description: s.list.description ?? null,
-            itemCount: s.list._count.items,
-            ownerHandle: s.list.owner.handle ?? null,
-            ownerName: s.list.owner.name ?? null,
-            previewItems: s.list.items.map((row) => ({
-              id: row.item.id,
-              imageUrl: row.item.imageUrl ?? null,
-              type: row.item.type,
-              title: row.item.title,
-            })),
-          }
-        : {
-            id: s.id,
-            listId: s.listId,
-            title: s.title,
-            description: s.description ?? null,
-            itemCount: Number(s.itemCount ?? 0),
-            ownerHandle: s.ownerHandle ?? null,
-            ownerName: s.ownerName ?? null,
-            previewItems: previewByListId.get(s.listId) ?? [],
-          },
-    ),
+    lists: savedLists.map((s) => ({
+      id: s.id,
+      listId: s.listId,
+      title: s.title,
+      description: s.description ?? null,
+      itemCount: Number(s.itemCount ?? 0),
+      ownerHandle: s.ownerHandle ?? null,
+      ownerName: s.ownerName ?? null,
+      previewItems: previewByListId.get(s.listId) ?? [],
+    })),
   });
 }
