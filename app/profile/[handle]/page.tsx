@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { loadSavedListIdSet } from "@/lib/savedLists";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { notFound } from "next/navigation";
@@ -135,6 +136,12 @@ export default async function ProfileByHandlePage({
   );
 
   const lists = await loadHandleProfileListsOrEmpty(targetUser.id, isOwnProfile);
+  const savedSet = session?.user?.id
+    ? await loadSavedListIdSet(
+        session.user.id,
+        lists.map((l) => l.id),
+      )
+    : new Set<string>();
 
   const viewerHandleRow =
     !isOwnProfile && session?.user?.id
@@ -152,6 +159,8 @@ export default async function ProfileByHandlePage({
     title: list.title,
     description: list.description ?? null,
     itemCount: list._count.items,
+    saved: savedSet.has(list.id),
+    href: isOwnProfile ? `/lists/${list.id}` : `/l/${list.id}`,
     previewItems: list.items.map((row) => ({
       id: row.item.id,
       imageUrl: row.item.imageUrl ?? null,
@@ -171,6 +180,7 @@ export default async function ProfileByHandlePage({
     followingByMe: !!followRow,
     isOwnProfile,
     viewerHandleSlug,
+    viewerCanSave: Boolean(session?.user?.id),
   };
 
   return <ProfileByHandleClient profile={profile} />;

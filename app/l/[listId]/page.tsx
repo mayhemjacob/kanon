@@ -3,12 +3,16 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
 
+import { ListSaveButton } from "@/app/lists/components/ListSaveButton";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import {
   listCuratorLabel,
   loadPublicListShare,
 } from "@/lib/publicList/loadPublicListShare";
+import { isListSavedByUser } from "@/lib/savedLists";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
 type PageParams = { listId: string };
 
@@ -115,6 +119,10 @@ export default async function PublicListPage({
 
   const list = await loadPublicListShare(token);
   if (!list) notFound();
+  const session = await getServerSession(authOptions);
+  const savedRow = session?.user?.id
+    ? await isListSavedByUser(session.user.id, list.id)
+    : null;
 
   const curator = listCuratorLabel(list.owner.handle, list.owner.name);
   const avatarSrc = normalizeItemImageUrlForNext(list.owner.image ?? null);
@@ -131,12 +139,21 @@ export default async function PublicListPage({
           >
             Kanon
           </Link>
-          <Link
-            href="/"
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 sm:h-11 sm:px-6 sm:text-[15px]"
-          >
-            Join Kanon
-          </Link>
+          <div className="flex items-center gap-2">
+            {session?.user?.id ? (
+              <ListSaveButton
+                listId={list.id}
+                initialSaved={savedRow}
+                size="sm"
+              />
+            ) : null}
+            <Link
+              href="/"
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 sm:h-11 sm:px-6 sm:text-[15px]"
+            >
+              Join Kanon
+            </Link>
+          </div>
         </header>
 
         <section className="mb-7 flex items-center gap-3">

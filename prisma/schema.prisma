@@ -38,6 +38,7 @@ model User {
   sessions   Session[]
   reviews    Review[]
   savedItems SavedItem[]
+  savedLists SavedList[]
   lists      List[]
   following  Follow[]    @relation("FollowFollowing")
   followers  Follow[]    @relation("FollowFollowers")
@@ -130,6 +131,7 @@ model List {
 
   owner User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   items ListItem[]
+  savedBy SavedList[]
 
   @@index([ownerId, createdAt(sort: Desc)])
   @@index([visibility, createdAt(sort: Desc)])
@@ -162,6 +164,20 @@ model SavedItem {
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@unique([userId, itemId])
+}
+
+model SavedList {
+  id        String   @id @default(cuid())
+  userId    String
+  listId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([listId])
 }
 
 model Review {

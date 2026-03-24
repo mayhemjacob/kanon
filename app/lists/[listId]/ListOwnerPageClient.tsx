@@ -91,12 +91,14 @@ export function ListOwnerPageClient({
   title: initialTitle,
   description: initialDescription,
   curator,
+  initialSaved,
   initialItems,
 }: {
   listId: string
   title: string
   description: string | null
   curator: { image: string | null; handle: string | null; name: string | null }
+  initialSaved: boolean
   initialItems: ListItemRow[]
 }) {
   const router = useRouter()
@@ -112,6 +114,8 @@ export function ListOwnerPageClient({
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [shareTip, setShareTip] = useState<string | null>(null)
+  const [listSaved, setListSaved] = useState(initialSaved)
+  const [saveToggleBusy, setSaveToggleBusy] = useState(false)
 
   const editSnapshot = useRef({
     title: initialTitle,
@@ -326,6 +330,25 @@ export function ListOwnerPageClient({
     }
   }
 
+  async function toggleListSave() {
+    if (saveToggleBusy) return
+    setSaveToggleBusy(true)
+    setListSaved((prev) => !prev)
+    try {
+      const res = await fetch(`/api/lists/${encodeURIComponent(listId)}/save`, {
+        method: "POST",
+      })
+      if (!res.ok) throw new Error("Could not update save")
+      const data = await res.json().catch(() => null)
+      if (!data || typeof data.saved !== "boolean") throw new Error("Could not update save")
+      setListSaved(data.saved)
+    } catch {
+      setListSaved((prev) => !prev)
+    } finally {
+      setSaveToggleBusy(false)
+    }
+  }
+
   async function removeItem(itemId: string) {
     setRemovingItemId(itemId)
     setRemoveError(null)
@@ -467,6 +490,23 @@ export function ListOwnerPageClient({
               Back
             </button>
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => void toggleListSave()}
+                disabled={saveToggleBusy}
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
+                aria-label={listSaved ? "Unsave list" : "Save list"}
+              >
+                {listSaved ? (
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" />
+                  </svg>
+                )}
+              </button>
               <button
                 type="button"
                 onClick={() => void deleteList()}

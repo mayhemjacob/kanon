@@ -39,6 +39,7 @@ export type ProfileData = {
    * or handle not set yet.
    */
   viewerHandleSlug: string | null;
+  viewerCanSave: boolean;
   lists: ProfileListPreview[];
 };
 
@@ -405,7 +406,11 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {initialProfile.lists.map((list) => (
-                  <ProfileListCard key={list.id} list={list} />
+                  <ProfileListCard
+                    key={list.id}
+                    list={list}
+                    showSaveButton={initialProfile.viewerCanSave}
+                  />
                 ))}
               </div>
             )}

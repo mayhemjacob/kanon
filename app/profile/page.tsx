@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { loadSavedListIdSet } from "@/lib/savedLists";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import ProfilePageClient, {
@@ -164,6 +165,11 @@ export default async function ProfilePage() {
     loadProfileListsOrEmpty(user.id),
   ]);
 
+  const savedSet = await loadSavedListIdSet(
+    user.id,
+    lists.map((l) => l.id),
+  );
+
   const initialCards: ReviewCard[] = reviews.map((r) => ({
     id: r.id,
     itemId: r.itemId,
@@ -189,6 +195,8 @@ export default async function ProfilePage() {
     title: list.title,
     description: list.description ?? null,
     itemCount: list._count.items,
+    saved: savedSet.has(list.id),
+    href: `/lists/${list.id}`,
     previewItems: list.items.map((row) => ({
       id: row.item.id,
       imageUrl: row.item.imageUrl ?? null,

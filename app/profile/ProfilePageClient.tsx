@@ -74,6 +74,51 @@ export default function ProfilePageClient({
     setLists(initialLists);
   }, [initialProfile, initialCards, initialLists]);
 
+  const refreshListSavedStates = useCallback(async () => {
+    const ids = lists.map((l) => l.id).filter(Boolean);
+    if (ids.length === 0) return;
+    try {
+      const params = new URLSearchParams({ ids: ids.join(",") });
+      const res = await fetch(`/api/lists/status?${params.toString()}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const byId = (await res.json().catch(() => null)) as
+        | Record<string, { saved?: boolean }>
+        | null;
+      if (!byId || typeof byId !== "object") return;
+      setLists((prev) =>
+        prev.map((list) => {
+          const status = byId[list.id];
+          if (!status || typeof status.saved !== "boolean") return list;
+          return { ...list, saved: status.saved };
+        }),
+      );
+    } catch {
+      // keep current UI state
+    }
+  }, [lists]);
+
+  useEffect(() => {
+    if (activeTab !== "lists") return;
+    void refreshListSavedStates();
+  }, [activeTab, refreshListSavedStates]);
+
+  useEffect(() => {
+    function onFocus() {
+      if (activeTab !== "lists") return;
+      void refreshListSavedStates();
+    }
+    function onPageShow() {
+      if (activeTab !== "lists") return;
+      void refreshListSavedStates();
+    }
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [activeTab, refreshListSavedStates]);
+
   const loadProfile = useCallback(async (showLoading = true) => {
     if (showLoading) setProfileLoading(true);
     try {
