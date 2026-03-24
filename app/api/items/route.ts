@@ -50,6 +50,7 @@ export async function GET(req: Request) {
     }
   } else {
     items = await prisma.item.findMany({
+      where: typeFilter ? { type: typeFilter } : undefined,
       orderBy: { createdAt: "desc" },
       take: 100,
       include: { reviews: true },

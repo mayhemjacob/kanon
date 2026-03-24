@@ -39,77 +39,7 @@ function safeListTitle(title: string | null | undefined): string {
   return "Curated List";
 }
 
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ listId: string }>;
-}) {
-  const { listId } = await params;
-  const list = await loadPublicListShare(listId ?? "");
-
-  if (!list) {
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            display: "flex",
-            width: "100%",
-            height: "100%",
-            backgroundColor: BG,
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "column",
-            fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              fontSize: 58,
-              color: INK,
-              fontWeight: 700,
-              letterSpacing: "-0.03em",
-            }}
-          >
-            List on Kanon
-          </div>
-          <div
-            style={{
-              display: "flex",
-              marginTop: 16,
-              fontSize: 28,
-              color: MUTED,
-            }}
-          >
-            Curated recommendations
-          </div>
-        </div>
-      ),
-      { ...size },
-    );
-  }
-
-  const curator = truncateForOg(
-    listCuratorLabel(list.owner.handle, list.owner.name),
-    40,
-  );
-  const title = safeListTitle(list.title);
-  const description = truncateForOg(
-    list.description?.trim() || "A curated list on Kanon",
-    130,
-  );
-  const countLine = `${list.items.length} ${
-    list.items.length === 1 ? "recommendation" : "recommendations"
-  }`;
-
-  const firstThree = list.items.slice(0, 3).map((row) => row.item.imageUrl);
-  const [coverA, coverB, coverC] = await Promise.all([
-    coverSrcForOg(firstThree[0]),
-    coverSrcForOg(firstThree[1]),
-    coverSrcForOg(firstThree[2]),
-  ]);
-  const covers = [coverA, coverB, coverC];
-
+function fallbackImage(title = "List on Kanon", subtitle = "Curated recommendations") {
   return new ImageResponse(
     (
       <div
@@ -118,22 +48,95 @@ export default async function Image({
           width: "100%",
           height: "100%",
           backgroundColor: BG,
-          color: INK,
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
           fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
-          position: "relative",
-          padding: "52px 56px",
+          padding: "0 40px",
+          textAlign: "center",
         }}
       >
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            width: "62%",
-            minWidth: 0,
-            justifyContent: "space-between",
+            fontSize: 58,
+            color: INK,
+            fontWeight: 700,
+            letterSpacing: "-0.03em",
+            lineHeight: 1.1,
+            maxWidth: 1040,
+            overflow: "hidden",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          {truncateForOg(title, 48)}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            marginTop: 16,
+            fontSize: 28,
+            color: MUTED,
+          }}
+        >
+          {truncateForOg(subtitle, 72)}
+        </div>
+      </div>
+    ),
+    { ...size },
+  );
+}
+
+export default async function Image({
+  params,
+}: {
+  params: Promise<{ listId: string }>;
+}) {
+  try {
+    const { listId } = await params;
+    const list = await loadPublicListShare(listId ?? "");
+
+    if (!list) {
+      return fallbackImage();
+    }
+
+    const curator = truncateForOg(
+      listCuratorLabel(list.owner.handle, list.owner.name),
+      40,
+    );
+    const title = safeListTitle(list.title);
+    const description = truncateForOg(
+      list.description?.trim() || "A curated list on Kanon",
+      130,
+    );
+    const countLine = `${list.items.length} ${
+      list.items.length === 1 ? "recommendation" : "recommendations"
+    }`;
+
+    const cover = await coverSrcForOg(list.items[0]?.item.imageUrl);
+
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            height: "100%",
+            backgroundColor: BG,
+            color: INK,
+            fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+            position: "relative",
+            padding: "48px 52px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "66%",
+              minWidth: 0,
+              justifyContent: "center",
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -148,12 +151,12 @@ export default async function Image({
             <div
               style={{
                 display: "flex",
-                marginTop: 18,
-                fontSize: 68,
+                marginTop: 16,
+                fontSize: 66,
                 lineHeight: 1.02,
                 letterSpacing: "-0.04em",
                 fontWeight: 700,
-                maxHeight: 230,
+                maxHeight: 220,
                 overflow: "hidden",
               }}
             >
@@ -162,7 +165,7 @@ export default async function Image({
             <div
               style={{
                 display: "flex",
-                marginTop: 18,
+                marginTop: 16,
                 fontSize: 28,
                 color: MUTED,
                 lineHeight: 1.3,
@@ -172,12 +175,10 @@ export default async function Image({
             >
               {description}
             </div>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column" }}>
             <div
               style={{
                 display: "flex",
+                marginTop: 28,
                 fontSize: 24,
                 color: SUBTLE,
                 letterSpacing: "0.01em",
@@ -189,7 +190,7 @@ export default async function Image({
             <div
               style={{
                 display: "flex",
-                marginTop: 20,
+                marginTop: 16,
                 fontSize: 34,
                 letterSpacing: "-0.03em",
                 fontWeight: 700,
@@ -198,59 +199,55 @@ export default async function Image({
               Kanon
             </div>
           </div>
-        </div>
 
-        <div
-          style={{
-            display: "flex",
-            width: "38%",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            gap: 14,
-          }}
-        >
-          {covers.map((cover, index) =>
-            cover ? (
+          <div
+            style={{
+              display: "flex",
+              width: "34%",
+              alignItems: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            {cover ? (
               <img
-                key={index}
                 alt=""
                 src={cover}
-                width={index === 1 ? 184 : 164}
-                height={index === 1 ? 276 : 246}
+                width={262}
+                height={392}
                 style={{
-                  borderRadius: 14,
+                  borderRadius: 16,
                   objectFit: "cover",
                   boxShadow: "0 20px 44px rgba(0,0,0,0.35)",
                   border: "1px solid rgba(255,255,255,0.08)",
-                  transform: index === 0 ? "translateY(14px)" : index === 2 ? "translateY(-14px)" : "none",
                 }}
               />
             ) : (
               <div
-                key={index}
                 style={{
-                  width: index === 1 ? 184 : 164,
-                  height: index === 1 ? 276 : 246,
-                  borderRadius: 14,
+                  width: 262,
+                  height: 392,
+                  borderRadius: 16,
                   backgroundColor: SURFACE,
                   border: "1px solid rgba(255,255,255,0.08)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: SUBTLE,
-                  fontSize: 20,
+                  fontSize: 24,
                   fontWeight: 600,
                   letterSpacing: "-0.02em",
-                  transform: index === 0 ? "translateY(14px)" : index === 2 ? "translateY(-14px)" : "none",
                 }}
               >
                 Kanon
               </div>
-            ),
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    ),
-    { ...size },
-  );
+      ),
+      { ...size },
+    );
+  } catch (error) {
+    console.error("[/l/[listId]/opengraph-image] failed", error);
+    return fallbackImage("Kanon", "Curated recommendations");
+  }
 }
