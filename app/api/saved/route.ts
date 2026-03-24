@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import { Prisma } from "@prisma/client";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { prisma } from "@/lib/prisma";
@@ -36,24 +37,39 @@ type RawSavedListRow = {
   itemCount: bigint;
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const where =
-    session.user.id != null
-      ? { id: session.user.id }
-      : session.user.email
-      ? { email: session.user.email }
+  let userId: string | null =
+    typeof session.user.id === "string" && session.user.id.trim()
+      ? session.user.id
       : null;
-  if (!where) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (!userId && typeof session.user.email === "string" && session.user.email.trim()) {
+    const byEmail = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+    userId = byEmail?.id ?? null;
   }
 
+  if (!userId) {
+    const token = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    }).catch(() => null);
+    if (typeof token?.sub === "string" && token.sub.trim()) {
+      userId = token.sub;
+    }
+  }
+
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const user = await prisma.user.findUnique({
-    where,
+    where: { id: userId },
     select: { id: true },
   });
   if (!user) {
