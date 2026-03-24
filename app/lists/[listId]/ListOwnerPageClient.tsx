@@ -148,6 +148,8 @@ export function ListOwnerPageClient({
     setAddError(null)
   }, [])
 
+  const cameFromCreate = searchParams?.get("from") === "create"
+
   useEffect(() => {
     if (searchParams?.get("openAdd") !== "1") return
     openAddModal()
@@ -481,7 +483,13 @@ export function ListOwnerPageClient({
           <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => {
+                if (cameFromCreate) {
+                  router.push("/profile?tab=lists")
+                  return
+                }
+                router.back()
+              }}
               className="flex items-center gap-1 text-sm font-medium text-zinc-700 hover:text-zinc-900"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

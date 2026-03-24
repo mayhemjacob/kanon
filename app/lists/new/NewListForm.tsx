@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import type { ItemType } from "@/app/components/ItemCard"
 import { MediaTypeIcon } from "@/app/lists/components/MediaTypeIcon"
@@ -63,6 +63,7 @@ export function NewListForm() {
   /** Order = list order; same item id appears at most once */
   const [orderedSelection, setOrderedSelection] = useState<SearchItem[]>([])
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const submitInFlightRef = useRef(false)
 
   const trimmedTitle = useMemo(() => title.trim(), [title])
   const canSubmit = trimmedTitle.length > 0 && !saving
@@ -130,7 +131,8 @@ export function NewListForm() {
   }
 
   async function createList() {
-    if (!canSubmit) return
+    if (!canSubmit || submitInFlightRef.current) return
+    submitInFlightRef.current = true
     setSaving(true)
     setError(null)
 
@@ -158,10 +160,11 @@ export function NewListForm() {
         return
       }
 
-      router.push(`/lists/${created.id}`)
+      router.replace(`/lists/${created.id}?from=create`)
     } catch {
       setError("Could not create list")
     } finally {
+      submitInFlightRef.current = false
       setSaving(false)
     }
   }
@@ -177,7 +180,11 @@ export function NewListForm() {
   )
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form
+      onSubmit={onSubmit}
+      className={`space-y-6 transition-opacity ${saving ? "opacity-90" : "opacity-100"}`}
+      aria-busy={saving}
+    >
       <div className="space-y-2">
         <label className="text-[13px] font-medium text-zinc-800">Title</label>
         <input
@@ -189,6 +196,7 @@ export function NewListForm() {
           placeholder="e.g. Essential Sci-Fi Cinema"
           className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-[15px] text-zinc-900 placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-black/5"
           required
+          disabled={saving}
         />
       </div>
 
@@ -205,6 +213,7 @@ export function NewListForm() {
           rows={4}
           placeholder="What makes this list special?"
           className="w-full resize-none rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-[15px] text-zinc-900 placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-black/5"
+          disabled={saving}
         />
       </div>
 
@@ -221,6 +230,7 @@ export function NewListForm() {
           <button
             type="button"
             onClick={() => setModalOpen(true)}
+            disabled={saving}
             className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-55"
           >
             + Add Items
@@ -248,6 +258,7 @@ export function NewListForm() {
                     e.dataTransfer.dropEffect = "move"
                   }}
                   onDrop={(e) => {
+                    if (saving) return
                     e.preventDefault()
                     const fromId = e.dataTransfer.getData("text/plain") || draggingId
                     if (fromId) reorderSelection(fromId, row.id)
@@ -294,6 +305,7 @@ export function NewListForm() {
                   <button
                     type="button"
                     onClick={() => removeFromSelection(row.id)}
+                    disabled={saving}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800"
                     aria-label={`Remove ${row.title}`}
                   >
@@ -311,6 +323,7 @@ export function NewListForm() {
             <button
               type="button"
               onClick={() => setModalOpen(true)}
+              disabled={saving}
               className="mt-5 rounded-full bg-zinc-900 px-6 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-55"
             >
               + Add Items
@@ -320,6 +333,11 @@ export function NewListForm() {
       </section>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {saving ? (
+        <p className="text-xs text-zinc-500" role="status">
+          Creating your list...
+        </p>
+      ) : null}
 
       <div className="flex items-center justify-end gap-3 pt-1">
         <button
@@ -335,19 +353,35 @@ export function NewListForm() {
           disabled={!canSubmit}
           className="rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-40"
         >
-          {saving ? "Creating..." : "Create"}
+          <span className="inline-flex items-center gap-2">
+            {saving ? (
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
+                <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            ) : null}
+            {saving ? "Creating..." : "Create"}
+          </span>
         </button>
       </div>
 
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/45" aria-hidden onClick={() => setModalOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/45"
+            aria-hidden
+            onClick={() => {
+              if (saving) return
+              setModalOpen(false)
+            }}
+          />
           <div className="relative w-full max-w-3xl rounded-3xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-3xl font-semibold tracking-tight text-zinc-900">Add Items</h2>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
+                disabled={saving}
                 className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
                 aria-label="Close"
               >
@@ -370,6 +404,7 @@ export function NewListForm() {
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search films, shows, books..."
                   className="w-full rounded-2xl border border-zinc-200 px-11 py-3 text-sm text-zinc-900 outline-none focus:ring-2 focus:ring-black/5"
+                  disabled={saving}
                 />
               </div>
 
@@ -382,6 +417,7 @@ export function NewListForm() {
                       key={t}
                       type="button"
                       onClick={() => setTypeFilter(t)}
+                      disabled={saving}
                       className={`rounded-full px-4 py-1.5 ${active ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
                     >
                       {label}
@@ -427,6 +463,7 @@ export function NewListForm() {
                           <button
                             type="button"
                             onClick={() => toggleSelectedInModal(row)}
+                            disabled={saving}
                             className={`flex h-8 w-8 items-center justify-center rounded-full border text-sm ${selected ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-300 text-zinc-500 hover:bg-zinc-100"}`}
                             aria-label={selected ? "Deselect item" : "Select item"}
                           >
@@ -443,6 +480,7 @@ export function NewListForm() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
+                  disabled={saving}
                   className="flex-1 rounded-2xl border border-zinc-200 bg-white px-5 py-3 text-base font-medium text-zinc-900 hover:bg-zinc-50"
                 >
                   Cancel
@@ -450,7 +488,7 @@ export function NewListForm() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  disabled={orderedSelection.length === 0}
+                  disabled={orderedSelection.length === 0 || saving}
                   className="flex-1 rounded-2xl bg-zinc-900 px-5 py-3 text-base font-medium text-white hover:bg-zinc-800 disabled:opacity-40"
                 >
                   Add{orderedSelection.length > 0 ? ` (${orderedSelection.length})` : ""}

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { formatTimeAgo } from "@/lib/date";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
@@ -53,7 +53,10 @@ export default function ProfilePageClient({
   initialLists: ProfileListPreview[];
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("rated");
+  const searchParams = useSearchParams();
+  const tabFromQuery = searchParams?.get("tab");
+  const initialTab: ProfileTab = tabFromQuery === "lists" ? "lists" : "rated";
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
   const [activeType, setActiveType] =
     useState<"All" | "Films" | "Series" | "Books">("All");
   const [selectedRatingBands, setSelectedRatingBands] = useState<Set<RatingFilterOption>>(new Set());
@@ -73,6 +76,10 @@ export default function ProfilePageClient({
     setCards(initialCards);
     setLists(initialLists);
   }, [initialProfile, initialCards, initialLists]);
+
+  useEffect(() => {
+    setActiveTab(tabFromQuery === "lists" ? "lists" : "rated");
+  }, [tabFromQuery]);
 
   const refreshListSavedStates = useCallback(async () => {
     const ids = lists.map((l) => l.id).filter(Boolean);
