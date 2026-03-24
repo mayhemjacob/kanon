@@ -118,7 +118,7 @@ export default function SavedPage() {
                 saved: true,
                 ownerHandle: list.ownerHandle ?? null,
                 ownerName: list.ownerName ?? null,
-                href: `/l/${list.listId}`,
+                href: `/lists/${list.listId}`,
                 previewItems: (Array.isArray(list.previewItems) ? list.previewItems : []).map((i) => ({
                   id: i.id,
                   imageUrl: i.imageUrl ?? null,

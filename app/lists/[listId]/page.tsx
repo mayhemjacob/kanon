@@ -17,7 +17,7 @@ export default async function ListDetailPage({
 
   const list = await getListById(listId, session.user.id)
   if (!list) notFound()
-  if (list.ownerId !== session.user.id) notFound()
+  const isOwner = list.ownerId === session.user.id
 
   const savedRow = await isListSavedByUser(session.user.id, list.id)
 
@@ -44,6 +44,7 @@ export default async function ListDetailPage({
         handle: list.owner.handle ?? null,
         name: list.owner.name ?? null,
       }}
+      isOwner={isOwner}
       initialSaved={savedRow}
       initialItems={initialItems}
     />

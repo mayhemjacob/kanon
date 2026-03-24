@@ -91,6 +91,7 @@ export function ListOwnerPageClient({
   title: initialTitle,
   description: initialDescription,
   curator,
+  isOwner,
   initialSaved,
   initialItems,
 }: {
@@ -98,6 +99,7 @@ export function ListOwnerPageClient({
   title: string
   description: string | null
   curator: { image: string | null; handle: string | null; name: string | null }
+  isOwner: boolean
   initialSaved: boolean
   initialItems: ListItemRow[]
 }) {
@@ -143,18 +145,20 @@ export function ListOwnerPageClient({
   const avatarSrc = normalizeItemImageUrlForNext(curator.image)
 
   const openAddModal = useCallback(() => {
+    if (!isOwner) return
     setModalOpen(true)
     setSelectedIds(new Set())
     setAddError(null)
-  }, [])
+  }, [isOwner])
 
   const cameFromCreate = searchParams?.get("from") === "create"
 
   useEffect(() => {
+    if (!isOwner) return
     if (searchParams?.get("openAdd") !== "1") return
     openAddModal()
     router.replace(`/lists/${listId}`)
-  }, [listId, router, searchParams, openAddModal])
+  }, [isOwner, listId, router, searchParams, openAddModal])
 
   useEffect(() => {
     if (!modalOpen) return
@@ -192,6 +196,7 @@ export function ListOwnerPageClient({
   }, [modalOpen, query, typeFilter])
 
   function startEditing() {
+    if (!isOwner) return
     editSnapshot.current = {
       title: listTitle,
       description: listDescription,
@@ -291,6 +296,7 @@ export function ListOwnerPageClient({
   }
 
   async function deleteList() {
+    if (!isOwner) return
     if (!window.confirm("Delete this list? This cannot be undone.")) return
     setDeleteBusy(true)
     try {
@@ -455,7 +461,7 @@ export function ListOwnerPageClient({
     <main className="min-h-screen bg-white pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-8">
       {/* Top bar */}
       <div className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        {editing ? (
+        {editing && isOwner ? (
           <div className="relative mx-auto flex h-14 max-w-2xl items-center px-4 sm:px-6">
             <button
               type="button"
@@ -515,31 +521,35 @@ export function ListOwnerPageClient({
                   </svg>
                 )}
               </button>
-              <button
-                type="button"
-                onClick={() => void deleteList()}
-                disabled={deleteBusy}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-red-600 hover:bg-red-50 disabled:opacity-40"
-                aria-label="Delete list"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 6h18" />
-                  <path d="M8 6V4h8v2" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                  <path d="M10 11v6M14 11v6" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={startEditing}
-                className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
-                Edit
-              </button>
+              {isOwner ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void deleteList()}
+                    disabled={deleteBusy}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-red-600 hover:bg-red-50 disabled:opacity-40"
+                    aria-label="Delete list"
+                  >
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4h8v2" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                      <path d="M10 11v6M14 11v6" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={startEditing}
+                    className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                    Edit
+                  </button>
+                </>
+              ) : null}
               <button
                 type="button"
                 onClick={() => void shareList()}
@@ -636,16 +646,18 @@ export function ListOwnerPageClient({
               {items.length} {items.length === 1 ? "item" : "items"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={openAddModal}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-          >
-            <span className="text-base leading-none" aria-hidden>
-              +
-            </span>
-            Add Items
-          </button>
+          {isOwner ? (
+            <button
+              type="button"
+              onClick={openAddModal}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+            >
+              <span className="text-base leading-none" aria-hidden>
+                +
+              </span>
+              Add Items
+            </button>
+          ) : null}
         </div>
 
         {removeError ? <p className="mt-3 text-sm text-red-600">{removeError}</p> : null}
@@ -654,18 +666,20 @@ export function ListOwnerPageClient({
           {items.length === 0 ? (
             <li className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-5 py-10 text-center text-sm text-zinc-500">
               <p>No items yet.</p>
-              <button
-                type="button"
-                onClick={openAddModal}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-              >
-                <span className="text-base leading-none" aria-hidden>
-                  +
-                </span>
-                Add Items
-              </button>
+              {isOwner ? (
+                <button
+                  type="button"
+                  onClick={openAddModal}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+                >
+                  <span className="text-base leading-none" aria-hidden>
+                    +
+                  </span>
+                  Add Items
+                </button>
+              ) : null}
             </li>
-          ) : editing ? (
+          ) : editing && isOwner ? (
             <>
               {items.map((row, index) => {
                 const src = normalizeItemImageUrlForNext(row.item.imageUrl)
@@ -795,7 +809,7 @@ export function ListOwnerPageClient({
         ) : null}
       </div>
 
-      {modalOpen ? (
+      {modalOpen && isOwner ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/45" aria-hidden onClick={() => setModalOpen(false)} />
           <div className="relative w-full max-w-3xl rounded-3xl bg-white p-6 shadow-xl">
