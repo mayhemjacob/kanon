@@ -39,6 +39,7 @@ export default function SavedPage() {
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [savedLists, setSavedLists] = useState<SavedList[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
   const [unsavingId, setUnsavingId] = useState<string | null>(null);
 
   async function handleUnsave(e: React.MouseEvent, itemId: string) {
@@ -64,9 +65,22 @@ export default function SavedPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setAuthError(false);
     (async () => {
       try {
-        const res = await fetch("/api/saved", { cache: "no-store" });
+        const requestSaved = () =>
+          fetch("/api/saved", {
+            cache: "no-store",
+            credentials: "include",
+          });
+
+        let res = await requestSaved();
+        // In some browsers, an old NextAuth cookie can produce a transient 401.
+        // Retry once before treating it as an auth failure.
+        if (res.status === 401) {
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          res = await requestSaved();
+        }
         if (cancelled) return;
         if (res.ok) {
           const data = await res.json();
@@ -114,6 +128,9 @@ export default function SavedPage() {
               })
             )
           );
+          setAuthError(false);
+        } else if (res.status === 401) {
+          setAuthError(true);
         } else {
           setSavedItems([]);
           setSavedLists([]);
@@ -147,6 +164,16 @@ export default function SavedPage() {
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-2xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-8 md:pb-8">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Saved</h1>
+
+        {authError ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Your session expired in this browser. Please{" "}
+            <Link href="/login" className="font-medium underline">
+              sign in again
+            </Link>{" "}
+            to load your saved items.
+          </div>
+        ) : null}
 
         <nav className="mt-5 flex items-center border-b border-zinc-200 text-sm">
           <button
