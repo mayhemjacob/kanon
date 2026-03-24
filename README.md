@@ -44,3 +44,20 @@ Add `?connection_limit=1` to your `DATABASE_URL` when using an external pooler t
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Share Preview Regression Checklist
+
+Use this quick checklist when updating public share pages (`/r/*`, `/l/*`, `/match/*`):
+
+1. **Metadata exists in page source**
+   - Verify `og:title`, `og:description`, `og:image`, and `twitter:image` are present.
+2. **`og:image` is absolute**
+   - It must use `https://<host>/...`, not a relative URL.
+3. **OG image route returns `200`**
+   - Example: `/l/<id>/opengraph-image` should return `image/png`.
+4. **Fallback is safe**
+   - If data/images fail, route still returns a valid image (no 500).
+5. **Crawler-style fetch passes**
+   - `curl -A "facebookexternalhit/1.1" "<public-url>"` includes OG tags.
+6. **Real external test**
+   - Share a production (or tunnel) URL in WhatsApp; if cached, retry with a query param.

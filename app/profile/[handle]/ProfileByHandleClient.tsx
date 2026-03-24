@@ -403,7 +403,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
                 <p className="text-sm text-zinc-600">No lists yet.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {initialProfile.lists.map((list) => (
                   <ProfileListCard key={list.id} list={list} />
                 ))}

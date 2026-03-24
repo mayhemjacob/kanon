@@ -24,7 +24,7 @@ function previewTileLabel(type: string): string {
 function clampDescription(description: string | null): string | null {
   const t = description?.trim()
   if (!t) return null
-  return t.length > 96 ? `${t.slice(0, 95)}…` : t
+  return t.length > 72 ? `${t.slice(0, 71)}…` : t
 }
 
 export function ProfileListCard({ list }: { list: ProfileListPreview }) {
@@ -33,16 +33,16 @@ export function ProfileListCard({ list }: { list: ProfileListPreview }) {
   return (
     <Link
       href={`/lists/${list.id}`}
-      className="block rounded-2xl border border-zinc-100 bg-white p-3 transition-colors hover:bg-zinc-50"
+      className="block rounded-2xl border border-zinc-100 bg-white p-2.5 transition-colors hover:bg-zinc-50"
     >
-      <div className="mb-3 grid grid-cols-2 gap-1.5">
-        {[0, 1, 2, 3].map((i) => {
+      <div className="mb-2.5 grid grid-cols-2 gap-1.5">
+        {[0, 1].map((i) => {
           const preview = list.previewItems[i]
           const src = normalizeItemImageUrlForNext(preview?.imageUrl ?? null)
           return (
             <div
               key={preview?.id ?? `placeholder-${i}`}
-              className="relative aspect-[16/10] overflow-hidden rounded-lg bg-zinc-100"
+              className="relative aspect-[5/7] overflow-hidden rounded-lg bg-zinc-100"
             >
               {src ? (
                 <Image
@@ -72,7 +72,7 @@ export function ProfileListCard({ list }: { list: ProfileListPreview }) {
         <p className="mt-1 text-sm text-zinc-400">No description</p>
       )}
 
-      <div className="mt-3 text-xs text-zinc-500">
+      <div className="mt-2 text-xs text-zinc-500">
         {list.itemCount} {list.itemCount === 1 ? "item" : "items"}
       </div>
     </Link>

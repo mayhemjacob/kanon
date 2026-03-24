@@ -246,8 +246,7 @@ export default async function Image({
       ),
       { ...size },
     );
-  } catch (error) {
-    console.error("[/l/[listId]/opengraph-image] failed", error);
+  } catch {
     return fallbackImage("Kanon", "Curated recommendations");
   }
 }
