@@ -735,16 +735,6 @@ export function ListOwnerPageClient({
                         ) : null}
                       </div>
                       {credit ? <p className="mt-2 text-sm text-zinc-500">{credit}</p> : null}
-                      <div className="mt-3 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => void removeItem(row.item.id)}
-                          disabled={removingItemId === row.item.id}
-                          className="text-xs font-medium text-zinc-500 hover:text-zinc-800 disabled:opacity-40"
-                        >
-                          Remove
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </li>

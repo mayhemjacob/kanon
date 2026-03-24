@@ -1,62 +1,122 @@
-import Image from "next/image"
-import Link from "next/link"
-import { notFound } from "next/navigation"
+import Image from "next/image";
+import Link from "next/link";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { MediaTypeIcon } from "@/app/lists/components/MediaTypeIcon"
-import { getPublicListById } from "@/lib/lists"
-import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl"
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+import {
+  listCuratorLabel,
+  loadPublicListShare,
+} from "@/lib/publicList/loadPublicListShare";
 
-import type { ItemType } from "@/app/components/ItemCard"
+type PageParams = { listId: string };
 
-function typeLabel(type: ItemType): string {
-  if (type === "SHOW") return "Series"
-  if (type === "FILM") return "Film"
-  return "Book"
+function clipMeta(s: string, max: number): string {
+  const t = s.trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1)}…`;
 }
 
-function creditLine(type: ItemType, director: string | null): string | null {
-  const d = director?.trim()
-  if (!d) return null
-  if (type === "BOOK") return `By ${d}`
-  return `Dir. ${d}`
+function publicListDescription(description: string | null, title: string): string {
+  const clean = description?.replace(/\s+/g, " ").trim();
+  if (clean) return clipMeta(clean, 180);
+  return clipMeta(`A curated list on Kanon: ${title}`, 180);
+}
+
+function imageNeedsUnoptimized(src: string): boolean {
+  return src.startsWith("data:") || src.startsWith("blob:");
+}
+
+function createdDateLabel(createdAt: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(createdAt);
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<PageParams>;
+}): Promise<Metadata> {
+  const { listId } = await params;
+  const token = listId?.trim() ?? "";
+  const list = await loadPublicListShare(token);
+
+  if (!list) {
+    return {
+      title: "List · Kanon",
+      description: "A curated list on Kanon",
+    };
+  }
+
+  const curator = listCuratorLabel(list.owner.handle, list.owner.name);
+  const title = clipMeta(`${list.title} · ${curator} · Kanon`, 72);
+  const description = publicListDescription(list.description ?? null, list.title);
+  const ogImagePath = `/l/${encodeURIComponent(token)}/opengraph-image`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: clipMeta(`${list.title} · List`, 64),
+      description: clipMeta(`${list.items.length} recommendations by ${curator}`, 200),
+      type: "website",
+      images: [
+        {
+          url: ogImagePath,
+          width: 1200,
+          height: 630,
+          alt: clipMeta(`${list.title} by ${curator}`, 120),
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: clipMeta(`${list.title} · List`, 64),
+      description,
+      images: [ogImagePath],
+    },
+  };
 }
 
 export default async function PublicListPage({
   params,
 }: {
-  params: Promise<{ listId: string }>
+  params: Promise<PageParams>;
 }) {
-  const { listId } = await params
-  const list = await getPublicListById(listId)
+  const { listId } = await params;
+  const token = listId?.trim();
+  if (!token) notFound();
 
-  if (!list) notFound()
+  const list = await loadPublicListShare(token);
+  if (!list) notFound();
 
-  const curatorLabel = list.owner.handle ? `@${list.owner.handle}` : list.owner.name || "Member"
-  const avatarSrc = normalizeItemImageUrlForNext(list.owner.image ?? null)
+  const curator = listCuratorLabel(list.owner.handle, list.owner.name);
+  const avatarSrc = normalizeItemImageUrlForNext(list.owner.image ?? null);
+  const profileHref = list.owner.handle ? `/profile/${list.owner.handle}` : "/";
+  const description = list.description?.trim();
 
   return (
-    <main className="min-h-screen bg-white pb-10">
-      <div className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-2xl items-center px-4 py-3 sm:px-6">
+    <main className="min-h-screen bg-white">
+      <div className="mx-auto max-w-2xl px-6 pb-16 pt-8 sm:px-8 sm:pt-10 md:max-w-3xl md:pb-20">
+        <header className="mb-8 flex items-center justify-between gap-4 border-b border-zinc-100 pb-6 sm:mb-10">
           <Link
             href="/"
-            className="flex items-center gap-1 text-sm font-medium text-zinc-700 hover:text-zinc-900"
+            className="text-lg font-semibold tracking-tight text-zinc-900 hover:text-zinc-700"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-            Back
+            Kanon
           </Link>
-        </div>
-      </div>
+          <Link
+            href="/"
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 sm:h-11 sm:px-6 sm:text-[15px]"
+          >
+            Join Kanon
+          </Link>
+        </header>
 
-      <div className="mx-auto max-w-2xl px-4 pt-6 sm:px-6 sm:pt-8">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">{list.title}</h1>
-        {list.description?.trim() ? (
-          <p className="mt-3 text-[15px] leading-relaxed text-zinc-500">{list.description}</p>
-        ) : null}
-
-        <div className="mt-6 flex items-center gap-3">
+        <section className="mb-7 flex items-center gap-3">
           <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-200">
             {avatarSrc ? (
               <Image
@@ -65,83 +125,107 @@ export default async function PublicListPage({
                 fill
                 className="object-cover"
                 sizes="44px"
-                unoptimized={avatarSrc.startsWith("data:") || avatarSrc.startsWith("blob:")}
+                unoptimized={imageNeedsUnoptimized(avatarSrc)}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm font-medium text-zinc-500">
-                {curatorLabel.slice(0, 1).toUpperCase()}
+              <div className="flex h-full w-full items-center justify-center text-sm font-medium text-zinc-600">
+                {curator.replace(/^@/, "").charAt(0).toUpperCase() || "?"}
               </div>
             )}
           </div>
-          <div className="min-w-0">
-            <p className="text-xs text-zinc-500">Curated by</p>
-            {list.owner.handle ? (
-              <Link href={`/profile/${list.owner.handle}`} className="font-semibold text-zinc-900 hover:underline">
-                {curatorLabel}
-              </Link>
-            ) : (
-              <p className="font-semibold text-zinc-900">{curatorLabel}</p>
-            )}
+          <div>
+            <p className="text-sm font-semibold text-zinc-800">{curator}</p>
+            <p className="text-xs text-zinc-500">curated a list</p>
           </div>
-        </div>
+        </section>
 
-        <hr className="my-6 border-zinc-200" />
+        <section className="mb-7">
+          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
+            {list.title}
+          </h1>
+          {description ? (
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-zinc-600">
+              {description}
+            </p>
+          ) : null}
+          <p className="mt-4 text-sm text-zinc-500">
+            {list.items.length} {list.items.length === 1 ? "recommendation" : "recommendations"}
+          </p>
+        </section>
 
-        <p className="text-xs text-zinc-500">
-          {list.items.length} {list.items.length === 1 ? "item" : "items"}
-        </p>
+        <hr className="mb-5 border-zinc-100" />
 
-        <ul className="mt-4 space-y-4">
+        <ol className="space-y-4">
           {list.items.map((row) => {
-            const type = row.item.type as ItemType
-            const src = normalizeItemImageUrlForNext(row.item.imageUrl)
-            const credit = creditLine(type, row.item.director ?? null)
+            const src = normalizeItemImageUrlForNext(row.item.imageUrl);
             return (
-              <li
-                key={row.id}
-                className="relative overflow-hidden rounded-2xl bg-zinc-50 p-4 pl-[4.25rem] sm:pl-[4.5rem]"
-              >
+              <li key={row.id} className="relative pl-11 sm:pl-12">
                 <span
-                  className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-5xl font-semibold tabular-nums leading-none text-zinc-200 sm:text-[3.5rem]"
+                  className="absolute left-0 top-1 text-4xl font-semibold tabular-nums leading-none text-zinc-200 sm:text-[42px]"
                   aria-hidden
                 >
-                  {row.position + 1}
+                  {String(row.position + 1).padStart(2, "0")}
                 </span>
-                <div className="flex gap-4">
-                  <div className="relative h-[7rem] w-12 shrink-0 overflow-hidden rounded-lg bg-zinc-200 sm:h-[7.5rem] sm:w-[3.35rem]">
+                <article className="flex gap-4 rounded-2xl px-1 py-2">
+                  <div className="relative h-[5.7rem] w-[3.7rem] shrink-0 overflow-hidden rounded-lg bg-zinc-200">
                     {src ? (
                       <Image
                         src={src}
                         alt=""
                         fill
                         className="object-cover"
-                        sizes="(max-width: 640px) 48px, 54px"
-                        unoptimized={src.startsWith("data:") || src.startsWith("blob:")}
+                        sizes="60px"
+                        unoptimized={imageNeedsUnoptimized(src)}
                       />
                     ) : null}
                   </div>
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <Link
-                      href={`/items/${row.item.id}`}
-                      className="text-base font-semibold leading-snug text-zinc-900 hover:underline sm:text-lg"
-                    >
-                      {row.item.title}
-                    </Link>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700">
-                        <MediaTypeIcon type={type} className="h-3.5 w-3.5 text-zinc-500" />
-                        {typeLabel(type)}
-                      </span>
-                      {row.item.year ? <span className="text-sm text-zinc-500">{row.item.year}</span> : null}
-                    </div>
-                    {credit ? <p className="mt-2 text-sm text-zinc-500">{credit}</p> : null}
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-xl font-semibold leading-tight text-zinc-900">{row.item.title}</p>
+                    {row.item.year ? <p className="mt-1.5 text-sm text-zinc-600">{row.item.year}</p> : null}
+                    {row.item.director?.trim() ? (
+                      <p className="mt-1 text-xs text-zinc-500">{`Directed by ${row.item.director}`}</p>
+                    ) : null}
                   </div>
-                </div>
+                </article>
               </li>
-            )
+            );
           })}
-        </ul>
+        </ol>
+
+        <section className="mt-8 border-t border-zinc-100 pt-5">
+          <p className="text-xs text-zinc-500">Created on {createdDateLabel(list.createdAt)}</p>
+        </section>
+
+        <aside className="mt-8 rounded-2xl border border-zinc-200 bg-zinc-50/60 px-6 py-9 text-center sm:px-10">
+          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            See more from {curator}
+          </h2>
+          <p className="mx-auto mt-2.5 max-w-md text-sm leading-relaxed text-zinc-600 sm:text-[15px]">
+            Discover more curated lists and reviews on Kanon.
+          </p>
+          <Link
+            href={profileHref}
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-zinc-900 px-6 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+          >
+            Join Kanon
+          </Link>
+        </aside>
+
+        <footer className="mt-12 flex flex-col gap-4 border-t border-zinc-100 pt-6 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} Kanon. A space for cultural taste.</p>
+          <nav className="flex flex-wrap gap-x-5 gap-y-1">
+            <a href="#" className="hover:text-zinc-800">
+              About
+            </a>
+            <a href="#" className="hover:text-zinc-800">
+              Privacy
+            </a>
+            <a href="#" className="hover:text-zinc-800">
+              Terms
+            </a>
+          </nav>
+        </footer>
       </div>
     </main>
-  )
+  );
 }

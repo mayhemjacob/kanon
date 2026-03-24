@@ -23,10 +23,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/r/") ||
     pathname.startsWith("/match/") ||
+    pathname.startsWith("/l/") ||
     pathname.startsWith("/lists/");
 
   const publicShareChrome =
-    pathname.startsWith("/r/") || pathname.startsWith("/match/");
+    pathname.startsWith("/r/") ||
+    pathname.startsWith("/match/") ||
+    pathname.startsWith("/l/");
 
   const otherUserProfile = isOtherUserProfile(pathname);
 
