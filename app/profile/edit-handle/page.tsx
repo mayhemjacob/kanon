@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  touchIconButtonInnerSolidClass,
+  touchIconButtonOuterClass,
+} from "@/lib/iconButtonTouchTarget";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -74,20 +78,22 @@ export default function EditHandlePage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+            className={touchIconButtonOuterClass}
             aria-label="Back"
           >
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M15 6 9 12l6 6" />
-            </svg>
+            <span className={touchIconButtonInnerSolidClass}>
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M15 6 9 12l6 6" />
+              </svg>
+            </span>
           </button>
           <h1 className="text-sm font-semibold tracking-tight">
             Edit Handle

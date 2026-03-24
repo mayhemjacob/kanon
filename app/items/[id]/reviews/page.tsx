@@ -1,3 +1,7 @@
+import {
+  touchIconButtonInnerGhostLgClass,
+  touchIconButtonOuterClass,
+} from "@/lib/iconButtonTouchTarget";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
@@ -126,12 +130,14 @@ export default async function ItemReviewsPage({
             <div className="mb-6 flex items-center gap-3">
               <Link
                 href={`/items/${id}`}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                className={`group ${touchIconButtonOuterClass}`}
                 aria-label="Back to item"
               >
-                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
+                <span className={touchIconButtonInnerGhostLgClass}>
+                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  </svg>
+                </span>
               </Link>
               <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Reviews</h1>
             </div>
@@ -170,20 +176,22 @@ export default async function ItemReviewsPage({
         <div className="mb-6 flex items-center gap-3">
           <Link
             href={`/items/${item.id}`}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            className={`group ${touchIconButtonOuterClass}`}
             aria-label="Back to item"
           >
-            <svg
-              className="h-6 w-6"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
+            <span className={touchIconButtonInnerGhostLgClass}>
+              <svg
+                className="h-6 w-6"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </span>
           </Link>
           <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
             Reviews

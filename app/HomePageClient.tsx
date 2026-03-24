@@ -417,7 +417,7 @@ export function HomePageClient({
                           href={
                             statusMap[review.itemId]?.reviewed &&
                             statusMap[review.itemId]?.reviewId
-                              ? `/items/${review.itemId}/reviews/${statusMap[review.itemId].reviewId}`
+                              ? `/items/${review.itemId}/reviews/${statusMap[review.itemId].reviewId}?from=home`
                               : `/items/${review.itemId}/review`
                           }
                           className={`transition-colors hover:text-zinc-700 ${
@@ -455,7 +455,7 @@ export function HomePageClient({
                     </div>
 
                     <Link
-                      href={`/items/${review.itemId}/reviews/${review.id}`}
+                      href={`/items/${review.itemId}/reviews/${review.id}?from=home`}
                       className="mt-4 grid min-h-0 grid-cols-[auto_1fr] gap-3 items-stretch rounded-lg hover:bg-zinc-50/80 -mx-1 px-1 transition-colors"
                     >
                       <div className="flex min-h-0 w-20 min-w-[4.5rem] shrink-0 flex-col justify-start overflow-hidden rounded-lg">

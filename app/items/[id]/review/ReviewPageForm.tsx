@@ -2,6 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import {
+  touchIconButtonInnerSolidClass,
+  touchIconButtonOuterClass,
+} from "@/lib/iconButtonTouchTarget";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -65,20 +69,22 @@ export function ReviewPageForm({ item }: { item: ReviewItemInfo }) {
         <div className="mb-6 flex items-center gap-3">
           <Link
             href={`/items/${item.id}`}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+            className={`group ${touchIconButtonOuterClass}`}
             aria-label="Back"
           >
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M15 6 9 12l6 6" />
-            </svg>
+            <span className={touchIconButtonInnerSolidClass}>
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M15 6 9 12l6 6" />
+              </svg>
+            </span>
           </Link>
           <h1 className="text-lg font-semibold tracking-tight">Review</h1>
         </div>

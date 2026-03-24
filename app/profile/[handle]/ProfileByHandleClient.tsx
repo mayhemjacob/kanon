@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  touchIconButtonInnerGhostLgClass,
+  touchIconButtonOuterClass,
+} from "@/lib/iconButtonTouchTarget";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -126,12 +130,14 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex items-center justify-center h-10 w-10 rounded-full text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            className={`group ${touchIconButtonOuterClass}`}
             aria-label="Go back"
           >
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
+            <span className={touchIconButtonInnerGhostLgClass}>
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </span>
           </button>
         </div>
         <header className="text-center space-y-2">

@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import Image from "next/image";
 import Link from "next/link";
+import { ItemPageBackButton } from "./ItemPageBackButton";
 import { ItemActions } from "./ItemActions";
 import { ItemDetailsEditable } from "./ItemDetailsEditable";
 import { ItemPoster } from "./ItemPoster";
@@ -160,23 +161,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
       <div className="mx-auto w-full max-w-4xl px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-8">
         {/* Top bar */}
         <div className="mb-6 flex items-center gap-3">
-          <Link
-            href="/"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-            aria-label="Back"
-          >
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M15 6 9 12l6 6" />
-            </svg>
-          </Link>
+          <ItemPageBackButton />
         </div>
 
         {/* Main item header */}

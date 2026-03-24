@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatReviewDate } from "@/lib/date";
+import { ReviewBackButton } from "./ReviewBackButton";
 import { ReviewEditable } from "./ReviewEditable";
 import { ReviewPageActions } from "./ReviewPageActions";
 import { ReviewRatingReactions } from "./ReviewRatingReactions";
@@ -95,10 +96,14 @@ const offlineReview: ReviewPageData = {
 
 export default async function ItemReviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; reviewId: string }>;
+  searchParams?: Promise<{ from?: string }>;
 }) {
   const { id: itemId, reviewId } = await params;
+  const query = searchParams ? await searchParams : {};
+  const fromHome = query.from === "home";
   const offline = process.env.NEXT_PUBLIC_OFFLINE_DEV === "1";
   const session = await getServerSession(authOptions);
 
@@ -211,23 +216,7 @@ export default async function ItemReviewPage({
       <div className="mx-auto max-w-2xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-8 md:pb-8">
         {/* Header: back arrow, then item summary + actions */}
         <div className="mb-4">
-          <Link
-            href={`/items/${item.id}/reviews`}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-            aria-label="Back to reviews"
-          >
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-          </Link>
+          <ReviewBackButton itemId={item.id} fromHome={fromHome} />
 
           <div className="mt-4 flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-1 gap-4">

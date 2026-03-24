@@ -6,6 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import type { ItemType } from "@/app/components/ItemCard"
+import {
+  touchIconButtonInnerSquareSmClass,
+  touchIconButtonOuterClass,
+} from "@/lib/iconButtonTouchTarget"
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl"
 import { MediaTypeIcon } from "@/app/lists/components/MediaTypeIcon"
 
@@ -466,12 +470,14 @@ export function ListOwnerPageClient({
             <button
               type="button"
               onClick={cancelEditing}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-700 hover:bg-zinc-100"
+              className={`group ${touchIconButtonOuterClass}`}
               aria-label="Back"
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
+              <span className={touchIconButtonInnerSquareSmClass}>
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </span>
             </button>
             <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-xl font-semibold leading-none text-zinc-900">
               Edit List
@@ -496,9 +502,9 @@ export function ListOwnerPageClient({
                 }
                 router.back()
               }}
-              className="flex items-center gap-1 text-sm font-medium text-zinc-700 hover:text-zinc-900"
+              className="inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 -mx-2 py-2 -my-1 text-sm font-medium text-zinc-700 hover:text-zinc-900 touch-manipulation"
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m15 18-6-6 6-6" />
               </svg>
               Back
