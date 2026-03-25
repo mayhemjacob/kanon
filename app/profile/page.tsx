@@ -7,7 +7,6 @@ import ProfilePageClient, {
   type ReviewCard,
 } from "./ProfilePageClient";
 import type { ProfileListPreview } from "./components/ProfileListCard";
-import { getUnreadNotificationCount } from "@/lib/notifications";
 
 /** First batch of RATED grid reviews (newest first). No load-more yet. */
 const PROFILE_REVIEWS_INITIAL_LIMIT = 40;
@@ -207,16 +206,12 @@ export default async function ProfilePage() {
     })),
   }));
 
-  const initialUnread = session?.user?.id
-    ? await getUnreadNotificationCount(session.user.id)
-    : 0;
-
   return (
     <ProfilePageClient
       initialProfile={initialProfile}
       initialCards={initialCards}
       initialLists={initialLists}
-      initialUnread={initialUnread}
+      initialUnread={0}
     />
   );
 }
