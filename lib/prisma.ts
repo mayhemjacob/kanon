@@ -58,6 +58,17 @@ export function prismaHasReviewRatingReactions(client: PrismaClient): boolean {
   )
 }
 
+export function prismaHasNotifications(client: PrismaClient): boolean {
+  return (
+    typeof (client as unknown as { notification?: { findMany: unknown } })
+      .notification?.findMany === "function"
+  )
+}
+
+export function prismaHasCurrentDelegates(client: PrismaClient): boolean {
+  return prismaHasReviewRatingReactions(client) && prismaHasNotifications(client)
+}
+
 /**
  * Reuse a cached PrismaClient only if it includes all current schema delegates.
  * Otherwise Next/webpack hot reload can keep a singleton from before `prisma generate`,
@@ -65,7 +76,7 @@ export function prismaHasReviewRatingReactions(client: PrismaClient): boolean {
  */
 function resolvePrismaClient(): PrismaClient {
   const existing = globalForPrisma.prisma
-  if (existing && prismaHasReviewRatingReactions(existing)) {
+  if (existing && prismaHasCurrentDelegates(existing)) {
     return existing
   }
 

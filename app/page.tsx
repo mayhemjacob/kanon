@@ -5,6 +5,7 @@ import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { formatTimeAgo } from "@/lib/date";
 import { HomePageClient, type HomeReview } from "./HomePageClient";
 import { getHomeFeed } from "@/lib/feed";
+import { getUnreadNotificationCount } from "@/lib/notifications";
 import { Suspense } from 'react';
 import FeedError from "./feedError";
 /** Home-only default share image (not inherited via root layout — avoids overriding Taste Match OG). */
@@ -116,12 +117,14 @@ export default async function Home() {
     {
     
       const { reviews, initialStatus } = await getHomeFeed(session?.user?.id);
+      const initialUnread = await getUnreadNotificationCount(session.user.id);
 
       return (
         <Suspense fallback={<FeedSkeleton />}>
           <HomePageClient
             reviews={reviews}
             initialStatus={initialStatus}
+            initialUnread={initialUnread}
           />
         </Suspense>
       );

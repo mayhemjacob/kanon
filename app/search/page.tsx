@@ -5,6 +5,7 @@ import { DiscoverPageClient } from "./DiscoverPageClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import type { ItemStatus } from "@/app/api/items/status/route";
+import { getUnreadNotificationCount } from "@/lib/notifications";
 
 export type DiscoverPerson = {
   id: string;
@@ -151,6 +152,10 @@ export default async function DiscoverPage({
     }, {});
   }
 
+  const initialUnread = session?.user?.id
+    ? await getUnreadNotificationCount(session.user.id)
+    : 0;
+
   return (
     <DiscoverPageClient
       items={mapped}
@@ -158,6 +163,7 @@ export default async function DiscoverPage({
       initialTab={initialTab}
       initialStatus={initialStatus}
       enableRemoteSearch
+      initialUnread={initialUnread}
     />
   );
 }

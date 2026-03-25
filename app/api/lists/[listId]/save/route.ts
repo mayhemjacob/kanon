@@ -4,6 +4,12 @@ import { getServerSession } from "next-auth";
 
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { createNotification } from "@/lib/notifications";
+import { NotificationEntityType, NotificationType } from "@prisma/client";
+
+function actorLabel(handle: string | null): string {
+  return handle ? handle.replace(/^@/, "") : "Someone";
+}
 
 export async function POST(
   _req: Request,
@@ -22,7 +28,7 @@ export async function POST(
 
   const list = await prisma.list.findUnique({
     where: { id },
-    select: { id: true, ownerId: true, visibility: true },
+    select: { id: true, ownerId: true, visibility: true, title: true },
   });
   if (!list) {
     return NextResponse.json({ error: "List not found" }, { status: 404 });
@@ -32,10 +38,14 @@ export async function POST(
   }
 
   const savedListClient = (prisma as unknown as {
-    savedList?: { findUnique: Function; delete: Function; create: Function };
+    savedList?: {
+      findUnique: (args: unknown) => Promise<unknown>;
+      delete: (args: unknown) => Promise<unknown>;
+      create: (args: unknown) => Promise<unknown>;
+    };
   }).savedList;
   if (savedListClient?.findUnique && savedListClient.delete && savedListClient.create) {
-    const existing = await savedListClient.findUnique({
+    const existing = (await savedListClient.findUnique({
       where: {
         userId_listId: {
           userId: session.user.id,
@@ -43,7 +53,7 @@ export async function POST(
         },
       },
       select: { id: true },
-    });
+    })) as { id: string } | null;
 
     if (existing) {
       await savedListClient.delete({ where: { id: existing.id } });
@@ -56,6 +66,29 @@ export async function POST(
         listId: id,
       },
     });
+
+    // Notify list owner (only on newly saved, never self).
+    try {
+      if (list.ownerId !== session.user.id) {
+        const actorRow = await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { handle: true },
+        });
+        const href = `/lists/${id}`;
+        await createNotification({
+          userId: list.ownerId,
+          actorId: session.user.id,
+          type: NotificationType.LIST_SAVED,
+          entityType: NotificationEntityType.LIST,
+          entityId: id,
+          text: `${actorLabel(actorRow?.handle ?? null)} saved your list ${list.title}`,
+          href,
+        });
+      }
+    } catch {
+      // Do not block saving on notification failures.
+    }
+
     return NextResponse.json({ saved: true });
   }
 

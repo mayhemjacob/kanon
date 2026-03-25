@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { prisma } from "@/lib/prisma";
+import { createNotification } from "@/lib/notifications";
+import { NotificationType } from "@prisma/client";
 
 function normalizeHandle(handle: string): string {
   return handle.trim().toLowerCase().replace(/^@/, "");
@@ -96,6 +98,27 @@ export async function POST(
         followingId: targetUser.id,
       },
     });
+
+    // Notify target user (only on newly created follow, never self).
+    try {
+      const actorRow = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { handle: true },
+      });
+      const actorHandle = actorRow?.handle ?? null;
+      const actorLabel = actorHandle ? actorHandle.replace(/^@/, "") : "Someone";
+      const href = actorHandle ? `/profile/${actorHandle}` : `/profile/${handleSlug}`;
+      await createNotification({
+        userId: targetUser.id,
+        actorId: session.user.id,
+        type: NotificationType.NEW_FOLLOWER,
+        text: `${actorLabel} started following you`,
+        href,
+      });
+    } catch {
+      // Do not block follow on notification failures.
+    }
+
     return NextResponse.json({ following: true });
   } catch (err) {
     return NextResponse.json(

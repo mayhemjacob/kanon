@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ItemCard, type ItemCardItem, type ItemType } from "@/app/components/ItemCard";
 import { DISCOVER_BROWSE_PAGE_SIZE } from "@/lib/discoverBrowse";
+import { NotificationsBell } from "@/app/components/NotificationsBell";
 
 type ItemStatus = { saved: boolean; reviewed: boolean; reviewId?: string };
 
@@ -60,6 +61,7 @@ export function DiscoverPageClient({
   initialTab = "culture",
   initialStatus = {},
   enableRemoteSearch = true,
+  initialUnread = 0,
 }: {
   items: ItemCardItem[];
   people?: Person[];
@@ -67,6 +69,7 @@ export function DiscoverPageClient({
   initialStatus?: Record<string, ItemStatus>;
   /** When false (e.g. offline dev), search only filters the preloaded list. */
   enableRemoteSearch?: boolean;
+  initialUnread?: number;
 }) {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
@@ -464,9 +467,12 @@ export function DiscoverPageClient({
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-2xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-8 md:pb-8">
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-          Discover
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+            Discover
+          </h1>
+          <NotificationsBell initialUnread={initialUnread} />
+        </div>
 
         <div className="mt-4 space-y-4">
           <div className="relative">

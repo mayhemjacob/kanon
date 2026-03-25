@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { formatTimeAgo } from "@/lib/date";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+import { NotificationsBell } from "@/app/components/NotificationsBell";
 import {
   ProfileListCard,
   type ProfileListPreview,
@@ -47,10 +48,12 @@ export default function ProfilePageClient({
   initialProfile,
   initialCards,
   initialLists,
+  initialUnread = 0,
 }: {
   initialProfile: ProfileState;
   initialCards: ReviewCard[];
   initialLists: ProfileListPreview[];
+  initialUnread?: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -301,7 +304,9 @@ export default function ProfilePageClient({
                 </>
               )}
             </div>
-            <div ref={profileMenuRef} className="absolute right-0 top-0">
+            <div className="absolute right-0 top-0 flex items-center gap-2">
+              <NotificationsBell initialUnread={initialUnread} />
+              <div ref={profileMenuRef}>
               <button
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
@@ -364,6 +369,7 @@ export default function ProfilePageClient({
                   </button>
                 </div>
               )}
+              </div>
             </div>
         </header>
 

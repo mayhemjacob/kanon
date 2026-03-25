@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+import { NotificationsBell } from "@/app/components/NotificationsBell";
 
 type ItemStatus = { saved: boolean; reviewed: boolean; reviewId?: string };
 
@@ -83,9 +84,11 @@ function imageNeedsUnoptimized(src: string): boolean {
 export function HomePageClient({
   reviews,
   initialStatus = {},
+  initialUnread = 0,
 }: {
   reviews: HomeReview[];
   initialStatus: Record<string, ItemStatus>;
+  initialUnread?: number;
 }) {
   // Ya NO dependemos de initialReviews undefined
   const [localReviews] = useState(reviews);
@@ -186,17 +189,20 @@ export function HomePageClient({
             <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
               For you
             </h1>
-            <button
-              type="button"
-              onClick={() => setSortModalOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
-              aria-label="Sort"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 6h4M4 12h4M4 18h4" />
-                <path d="M12 6h8M12 12h6M12 18h8" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <NotificationsBell initialUnread={initialUnread} />
+              <button
+                type="button"
+                onClick={() => setSortModalOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+                aria-label="Sort"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 6h4M4 12h4M4 18h4" />
+                  <path d="M12 6h8M12 12h6M12 18h8" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {sortModalOpen && (

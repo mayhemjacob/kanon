@@ -7,6 +7,23 @@ import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { getReviewRatingReactionSummary } from "@/lib/getReviewRatingReactionSummary";
 import { isRatingReactionType } from "@/lib/reviewRatingReactions";
 import { applyReviewRatingReaction } from "@/lib/reviewRatingReactionsPersistence";
+import { createNotification } from "@/lib/notifications";
+import { NotificationEntityType, NotificationType } from "@prisma/client";
+
+function titleCaseReaction(reactionType: string): string {
+  if (reactionType === "TOO_LOW") return "Too Low";
+  if (reactionType === "ABOUT_RIGHT") return "About Right";
+  if (reactionType === "TOO_HIGH") return "Too High";
+  return reactionType;
+}
+
+function actorLabel(handle: string | null): string {
+  return handle ? handle.replace(/^@/, "") : "Someone";
+}
+
+function formatRating(r: number): string {
+  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+}
 
 export async function GET(
   _req: Request,
@@ -62,6 +79,46 @@ export async function POST(
 
   try {
     await applyReviewRatingReaction(prisma, reviewId, userId, reactionType);
+
+    // Notify the review author (never self).
+    try {
+      const [reviewRow, actorRow] = await Promise.all([
+        prisma.review.findUnique({
+          where: { id: reviewId },
+          select: {
+            id: true,
+            userId: true,
+            itemId: true,
+            rating: true,
+            item: { select: { title: true } },
+          },
+        }),
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: { handle: true },
+        }),
+      ]);
+
+      if (reviewRow && reviewRow.userId !== userId) {
+        const href = `/items/${reviewRow.itemId}/reviews/${reviewRow.id}`;
+        const text = `${actorLabel(actorRow?.handle ?? null)} reacted '${titleCaseReaction(
+          reactionType
+        )}' to your ${formatRating(Number(reviewRow.rating))} for ${reviewRow.item.title}`;
+
+        await createNotification({
+          userId: reviewRow.userId,
+          actorId: userId,
+          type: NotificationType.REVIEW_RATING_REACTION,
+          entityType: NotificationEntityType.REVIEW,
+          entityId: reviewRow.id,
+          text,
+          href,
+        });
+      }
+    } catch {
+      // Do not block the reaction flow on notification failures.
+    }
+
     const summary = await getReviewRatingReactionSummary(reviewId, userId);
     return NextResponse.json(summary);
   } catch (err) {
