@@ -82,15 +82,15 @@ export function ItemCard({
         href={`/items/${item.id}`}
         className="flex min-h-16 min-w-0 flex-1 items-stretch gap-3"
       >
-        {/* Portada: mismo ratio 40×56 (5/7); crece en altura con la fila; ancho derivado del ratio */}
-        <div className="relative w-auto shrink-0 self-stretch overflow-hidden rounded-lg bg-zinc-200 aspect-[5/7] min-h-16 min-w-10">
+        {/* Poster: match row height with 3:4 ratio (matches home feed review cards) */}
+        <div className="relative shrink-0 self-stretch overflow-hidden rounded-lg bg-zinc-200 aspect-[3/4] min-h-16">
           {coverSrc ? (
             <Image
               src={coverSrc}
               alt=""
               fill
               className="object-cover"
-              sizes="56px"
+              sizes="64px"
               priority={coverImagePriority}
               unoptimized={imageNeedsUnoptimized(coverSrc)}
             />
