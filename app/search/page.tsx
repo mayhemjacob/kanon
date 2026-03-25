@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { Suspense } from "react";
 import SearchLoading from "./loading";
+import { unstable_cache } from "next/cache";
 
 export type DiscoverPerson = {
   id: string;
@@ -25,10 +26,9 @@ const offlineDiscoverItems: ItemCardItem[] = [
   { id: "5", title: "The Midnight Library", year: 2020, type: "BOOK", averageRating: 7.4, ratingCount: 2, tags: ["Fantasy", "Thought-Provoking"], imageUrl: null },
 ];
 
-async function DiscoverPageData({ initialTab }: { initialTab: "culture" | "people" }) {
-  const [session, itemsResult, peopleRows] = await Promise.all([
-    getServerSession(authOptions),
-    prisma.item.findMany({
+const getDiscoverSeed = unstable_cache(
+  async () => {
+    const items = await prisma.item.findMany({
       take: DISCOVER_BROWSE_PAGE_SIZE,
       orderBy: { createdAt: "desc" },
       select: {
@@ -39,71 +39,78 @@ async function DiscoverPageData({ initialTab }: { initialTab: "culture" | "peopl
         imageUrl: true,
         tags: true,
       },
-    }),
-    prisma.user.findMany({
+    });
+
+    const itemIds = items.map((i) => i.id);
+    const reviewAggregates =
+      itemIds.length > 0
+        ? await prisma.review.groupBy({
+            by: ["itemId"],
+            where: { itemId: { in: itemIds } },
+            _avg: { rating: true },
+            _count: { _all: true },
+          })
+        : [];
+
+    const statsByItemId = new Map(
+      reviewAggregates.map((row) => [
+        row.itemId,
+        {
+          ratingCount: row._count._all,
+          averageRating:
+            row._count._all === 0 || row._avg.rating == null
+              ? 0
+              : Number(Number(row._avg.rating).toFixed(1)),
+        },
+      ]),
+    );
+
+    const mapped: ItemCardItem[] = items.map((item) => {
+      const stat = statsByItemId.get(item.id);
+      return {
+        id: item.id,
+        title: item.title,
+        year: item.year ?? 0,
+        type: item.type as ItemType,
+        averageRating: stat?.averageRating ?? 0,
+        ratingCount: stat?.ratingCount ?? 0,
+        tags: item.tags ?? [],
+        imageUrl: item.imageUrl ?? null,
+      };
+    });
+
+    const peopleRows = await prisma.user.findMany({
       where: { handle: { not: null } },
       select: { id: true, handle: true, bio: true, image: true },
       orderBy: { handle: "asc" },
       take: DISCOVER_PEOPLE_INITIAL_LIMIT,
-    }),
+    });
+
+    const people: DiscoverPerson[] = peopleRows
+      .filter((u): u is typeof u & { handle: string } => u.handle != null)
+      .map((u) => ({
+        id: u.id,
+        handle: `@${u.handle}`,
+        bio: u.bio ?? null,
+        image: u.image ?? null,
+      }));
+
+    return { items: mapped, people };
+  },
+  ["discover-seed-v1"],
+  { revalidate: 60 },
+);
+
+async function DiscoverPageData({ initialTab }: { initialTab: "culture" | "people" }) {
+  const [session, seed] = await Promise.all([
+    getServerSession(authOptions),
+    getDiscoverSeed(),
   ]);
-
-  const items = itemsResult;
-  const itemIds = items.map((i) => i.id);
-
-  const reviewAggregates =
-    itemIds.length > 0
-      ? await prisma.review.groupBy({
-          by: ["itemId"],
-          where: { itemId: { in: itemIds } },
-          _avg: { rating: true },
-          _count: { _all: true },
-        })
-      : [];
-
-  const statsByItemId = new Map(
-    reviewAggregates.map((row) => [
-      row.itemId,
-      {
-        ratingCount: row._count._all,
-        averageRating:
-          row._count._all === 0 || row._avg.rating == null
-            ? 0
-            : Number(Number(row._avg.rating).toFixed(1)),
-      },
-    ]),
-  );
-
-  const people: DiscoverPerson[] = peopleRows
-    .filter((u): u is typeof u & { handle: string } => u.handle != null)
-    .map((u) => ({
-      id: u.id,
-      handle: `@${u.handle}`,
-      bio: u.bio ?? null,
-      image: u.image ?? null,
-    }));
-
-  const mapped: ItemCardItem[] = items.map((item) => {
-    const stat = statsByItemId.get(item.id);
-    const ratingCount = stat?.ratingCount ?? 0;
-    const averageRating = stat?.averageRating ?? 0;
-
-    return {
-      id: item.id,
-      title: item.title,
-      year: item.year ?? 0,
-      type: item.type as ItemType,
-      averageRating,
-      ratingCount,
-      tags: item.tags ?? [],
-      imageUrl: item.imageUrl ?? null,
-    };
-  });
 
   return (
     <DiscoverPageClient
-      items={mapped}
-      people={people}
+      items={seed.items}
+      people={seed.people}
       initialTab={initialTab}
       initialStatus={{}}
       enableRemoteSearch
