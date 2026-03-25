@@ -4,7 +4,6 @@ import { DISCOVER_BROWSE_PAGE_SIZE } from "@/lib/discoverBrowse";
 import { DiscoverPageClient } from "./DiscoverPageClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
-import type { ItemStatus } from "@/app/api/items/status/route";
 import { Suspense } from "react";
 import SearchLoading from "./loading";
 
@@ -101,43 +100,12 @@ async function DiscoverPageData({ initialTab }: { initialTab: "culture" | "peopl
     };
   });
 
-  let initialStatus: Record<string, ItemStatus> = {};
-
-  if (session?.user?.id && items.length > 0) {
-    const ids = items.map((i) => i.id);
-    const userId = session.user.id;
-
-    const [savedRows, reviewRows] = await Promise.all([
-      prisma.savedItem.findMany({
-        where: { userId, itemId: { in: ids } },
-        select: { itemId: true },
-      }),
-      prisma.review.findMany({
-        where: { userId, itemId: { in: ids } },
-        select: { itemId: true, id: true },
-      }),
-    ]);
-
-    const savedSet = new Set(savedRows.map((r) => r.itemId));
-    const reviewByItem = new Map(reviewRows.map((r) => [r.itemId, r.id]));
-
-    initialStatus = ids.reduce<Record<string, ItemStatus>>((acc, id) => {
-      const reviewId = reviewByItem.get(id);
-      acc[id] = {
-        saved: savedSet.has(id),
-        reviewed: !!reviewId,
-        ...(reviewId && { reviewId }),
-      };
-      return acc;
-    }, {});
-  }
-
   return (
     <DiscoverPageClient
       items={mapped}
       people={people}
       initialTab={initialTab}
-      initialStatus={initialStatus}
+      initialStatus={{}}
       enableRemoteSearch
       initialUnread={0}
     />

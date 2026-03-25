@@ -348,7 +348,7 @@ export function DiscoverPageClient({
       const res = await fetch(`/api/items/status?ids=${discoverItemIds.join(",")}`);
       if (res.ok) {
         const data = await res.json();
-        setStatusMap(data);
+        setStatusMap((prev) => ({ ...prev, ...(data ?? {}) }));
       }
     } catch {
       // offline or not logged in
@@ -362,9 +362,7 @@ export function DiscoverPageClient({
     );
     // Server already sent per-item status for logged-in users; skip duplicate /api/items/status.
     if (hasAllFromServer) return;
-    // Logged-out: server passes {}; saved/review defaults are false — no need to call API (401).
-    if (Object.keys(initialStatus).length === 0) return;
-    // Partial map only (unexpected): refresh from API.
+    // Otherwise, fetch in the background (401 is fine for logged-out visitors).
     void fetchStatus();
   }, [discoverItemIds, initialStatus, fetchStatus]);
 
