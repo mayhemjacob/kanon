@@ -45,3 +45,6 @@ next-env.d.ts
 
 # local chat exports (do not commit)
 cursor-chat-export.txt
+
+# Cursor IDE local state
+.cursor/
