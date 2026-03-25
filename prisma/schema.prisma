@@ -237,6 +237,7 @@ model Review {
   reviewRatingReactions ReviewRatingReaction[]
 
   @@unique([userId, itemId])
+  @@index([itemId])
   @@index([userId, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
 }
