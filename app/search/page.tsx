@@ -5,6 +5,8 @@ import { DiscoverPageClient } from "./DiscoverPageClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import type { ItemStatus } from "@/app/api/items/status/route";
+import { Suspense } from "react";
+import SearchLoading from "./loading";
 
 export type DiscoverPerson = {
   id: string;
@@ -24,28 +26,7 @@ const offlineDiscoverItems: ItemCardItem[] = [
   { id: "5", title: "The Midnight Library", year: 2020, type: "BOOK", averageRating: 7.4, ratingCount: 2, tags: ["Fantasy", "Thought-Provoking"], imageUrl: null },
 ];
 
-export default async function DiscoverPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ tab?: string }>;
-}) {
-  const offline = process.env.NEXT_PUBLIC_OFFLINE_DEV === "1";
-
-  const params = searchParams ? await searchParams : {};
-  const initialTab = params?.tab === "people" ? "people" : "culture";
-
-  if (offline) {
-    return (
-      <DiscoverPageClient
-        items={offlineDiscoverItems}
-        people={[]}
-        initialTab={initialTab}
-        initialStatus={{}}
-        enableRemoteSearch={false}
-      />
-    );
-  }
-
+async function DiscoverPageData({ initialTab }: { initialTab: "culture" | "people" }) {
   const [session, itemsResult, peopleRows] = await Promise.all([
     getServerSession(authOptions),
     prisma.item.findMany({
@@ -160,6 +141,35 @@ export default async function DiscoverPage({
       enableRemoteSearch
       initialUnread={0}
     />
+  );
+}
+
+export default async function DiscoverPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string }>;
+}) {
+  const offline = process.env.NEXT_PUBLIC_OFFLINE_DEV === "1";
+
+  const params = searchParams ? await searchParams : {};
+  const initialTab = params?.tab === "people" ? "people" : "culture";
+
+  if (offline) {
+    return (
+      <DiscoverPageClient
+        items={offlineDiscoverItems}
+        people={[]}
+        initialTab={initialTab}
+        initialStatus={{}}
+        enableRemoteSearch={false}
+      />
+    );
+  }
+
+  return (
+    <Suspense fallback={<SearchLoading />}>
+      <DiscoverPageData initialTab={initialTab} />
+    </Suspense>
   );
 }
 
