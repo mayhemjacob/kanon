@@ -234,7 +234,7 @@ export function ProfileByHandleClient({ profile: initialProfile }: Props) {
         </nav>
 
         {activeTab === "rated" ? (
-        <section className="space-y-3 pt-4">
+        <section className="-mt-4 space-y-2 pt-0 sm:mt-0 sm:pt-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
               RATED
