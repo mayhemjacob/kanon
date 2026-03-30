@@ -3,6 +3,7 @@ import type { ItemStatus } from "@/app/api/items/status/route";
 import { formatTimeAgo } from "@/lib/date";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 
 
@@ -32,9 +33,14 @@ type FeedRow = {
 };
 
 function isConnectionPoolTimeoutError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    // P2024: timed out fetching a new connection from the pool
+    if (err.code === "P2024") return true;
+  }
   const msg = err instanceof Error ? err.message : String(err);
-  return /Unable to check out connection from the pool due to timeout/i.test(
-    msg
+  return (
+    /Unable to check out connection from the pool due to timeout/i.test(msg) ||
+    /Timed out fetching a new connection from the connection pool/i.test(msg)
   );
 }
 

@@ -2,6 +2,7 @@ import { getReviewRatingReactionSummary } from "@/lib/getReviewRatingReactionSum
 import type { RatingReactionSummary } from "@/lib/reviewRatingReactions";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import Image from "next/image";
@@ -95,9 +96,14 @@ const offlineReview: ReviewPageData = {
 };
 
 function isConnectionPoolTimeoutError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    // P2024: timed out fetching a new connection from the pool
+    if (err.code === "P2024") return true;
+  }
   const msg = err instanceof Error ? err.message : String(err);
-  return /Unable to check out connection from the pool due to timeout/i.test(
-    msg
+  return (
+    /Unable to check out connection from the pool due to timeout/i.test(msg) ||
+    /Timed out fetching a new connection from the connection pool/i.test(msg)
   );
 }
 

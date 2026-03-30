@@ -41,9 +41,14 @@ function isMissingNotificationTableError(err: unknown): boolean {
 }
 
 function isConnectionPoolTimeoutError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    // P2024: timed out fetching a new connection from the pool
+    if (err.code === "P2024") return true;
+  }
   const msg = err instanceof Error ? err.message : String(err);
-  return /Unable to check out connection from the pool due to timeout/i.test(
-    msg
+  return (
+    /Unable to check out connection from the pool due to timeout/i.test(msg) ||
+    /Timed out fetching a new connection from the connection pool/i.test(msg)
   );
 }
 
