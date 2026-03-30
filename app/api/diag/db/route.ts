@@ -39,6 +39,18 @@ function errorSummary(err: unknown) {
   return { message };
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`timeout_after_${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 export async function GET(req: Request) {
   const diagToken = process.env.DIAG_DB_TOKEN?.trim();
   const url = new URL(req.url);
@@ -69,7 +81,7 @@ export async function GET(req: Request) {
 
   try {
     const pingStart = Date.now();
-    await prisma.$queryRaw`SELECT 1`;
+    await withTimeout(prisma.$queryRaw`SELECT 1`, 4000);
     result.pingMs = Date.now() - pingStart;
   } catch (err) {
     result.pingError = errorSummary(err);
@@ -77,7 +89,7 @@ export async function GET(req: Request) {
 
   try {
     const countStart = Date.now();
-    const itemCount = await prisma.item.count();
+    const itemCount = await withTimeout(prisma.item.count(), 4000);
     result.itemCountMs = Date.now() - countStart;
     result.itemCount = itemCount;
   } catch (err) {
