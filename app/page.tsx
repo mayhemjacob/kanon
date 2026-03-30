@@ -132,7 +132,7 @@ export default async function Home() {
     
       const { reviews, initialStatus } = await withTimeoutFallback(
         getHomeFeed(session?.user?.id),
-        3000,
+        7000,
         { reviews: [] as HomeReview[], initialStatus: {} as Record<string, { saved: boolean; reviewed: boolean; reviewId?: string }> }
       );
 
