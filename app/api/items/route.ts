@@ -6,6 +6,31 @@ const SEARCH_LIMIT = 50
 
 type ItemWithReviews = Prisma.ItemGetPayload<{ include: { reviews: true } }>
 
+function isConnectionPoolTimeoutError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2024") {
+    return true
+  }
+  const msg = err instanceof Error ? err.message : String(err)
+  return (
+    /Unable to check out connection from the pool due to timeout/i.test(msg) ||
+    /Timed out fetching a new connection from the connection pool/i.test(msg)
+  )
+}
+
+async function withTimeoutFallback<T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: T
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => resolve(fallback), ms)
+  })
+  const result = await Promise.race([promise.catch(() => fallback), timeoutPromise])
+  if (timeoutId) clearTimeout(timeoutId)
+  return result
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q")?.trim()
@@ -15,46 +40,57 @@ export async function GET(req: Request) {
       ? typeParam
       : null
 
-  let items: ItemWithReviews[]
+  let items: ItemWithReviews[] = []
+  try {
+    items = await withTimeoutFallback(
+      (async () => {
+        if (q) {
+          const pattern = `%${q}%`
+          const typeSql = typeFilter
+            ? Prisma.sql`AND "type" = ${typeFilter}::"ItemType"`
+            : Prisma.empty
 
-  if (q) {
-    const pattern = `%${q}%`
-    const typeSql = typeFilter
-      ? Prisma.sql`AND "type" = ${typeFilter}::"ItemType"`
-      : Prisma.empty
+          const idRows = await prisma.$queryRaw<{ id: string }[]>`
+            SELECT "id" FROM "Item"
+            WHERE (
+              "title" ILIKE ${pattern}
+              OR ("originalTitle" IS NOT NULL AND "originalTitle" ILIKE ${pattern})
+              OR EXISTS (
+                SELECT 1 FROM unnest("tags") AS t(tag) WHERE tag ILIKE ${pattern}
+              )
+            )
+            ${typeSql}
+            ORDER BY "createdAt" DESC
+            LIMIT ${SEARCH_LIMIT}
+          `
 
-    const idRows = await prisma.$queryRaw<{ id: string }[]>`
-      SELECT "id" FROM "Item"
-      WHERE (
-        "title" ILIKE ${pattern}
-        OR ("originalTitle" IS NOT NULL AND "originalTitle" ILIKE ${pattern})
-        OR EXISTS (
-          SELECT 1 FROM unnest("tags") AS t(tag) WHERE tag ILIKE ${pattern}
-        )
-      )
-      ${typeSql}
-      ORDER BY "createdAt" DESC
-      LIMIT ${SEARCH_LIMIT}
-    `
+          const ids = idRows.map((r) => r.id)
+          if (ids.length === 0) {
+            return []
+          }
+          const unordered = await prisma.item.findMany({
+            where: { id: { in: ids } },
+            include: { reviews: true },
+          })
+          const byId = new Map(unordered.map((row) => [row.id, row]))
+          return ids.map((id) => byId.get(id)).filter(Boolean) as typeof unordered
+        }
 
-    const ids = idRows.map((r) => r.id)
-    if (ids.length === 0) {
-      items = []
-    } else {
-      const unordered = await prisma.item.findMany({
-        where: { id: { in: ids } },
-        include: { reviews: true },
-      })
-      const byId = new Map(unordered.map((row) => [row.id, row]))
-      items = ids.map((id) => byId.get(id)).filter(Boolean) as typeof unordered
+        return prisma.item.findMany({
+          where: typeFilter ? { type: typeFilter } : undefined,
+          orderBy: { createdAt: "desc" },
+          take: 100,
+          include: { reviews: true },
+        })
+      })(),
+      5000,
+      []
+    )
+  } catch (err) {
+    if (isConnectionPoolTimeoutError(err)) {
+      return NextResponse.json([])
     }
-  } else {
-    items = await prisma.item.findMany({
-      where: typeFilter ? { type: typeFilter } : undefined,
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      include: { reviews: true },
-    })
+    throw err
   }
 
   const withRating = items.map((item) => {
