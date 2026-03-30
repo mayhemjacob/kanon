@@ -191,7 +191,10 @@ export default async function ItemPage({ params }: ItemPageProps) {
               </span>
             </div>
 
-            <div className="mt-4 flex items-center gap-3">
+            <Link
+              href={`/items/${itemVm.id}/reviews`}
+              className="mt-4 inline-flex items-center gap-3"
+            >
               <div className="flex items-center gap-1.5">
                 <svg
                   className="h-4 w-4 text-zinc-900"
@@ -211,7 +214,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
               <span className="text-xs text-zinc-500">
                 ({itemVm.ratingCount})
               </span>
-            </div>
+            </Link>
 
             <ItemActions itemId={itemVm.id} saved={saved} reviewed={reviewed} myReviewId={myReviewId} />
           </div>
