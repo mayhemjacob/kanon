@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { ItemType, Prisma } from "@prisma/client";
+import { ItemType, Prisma } from "@prisma/client";
 import {
   DISCOVER_BROWSE_MAX_PAGE,
   DISCOVER_BROWSE_PAGE_SIZE,
@@ -7,6 +7,31 @@ import {
 import { NextResponse } from "next/server";
 
 type ItemWithReviews = Prisma.ItemGetPayload<{ include: { reviews: true } }>;
+
+function isConnectionPoolTimeoutError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2024") {
+    return true;
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    /Unable to check out connection from the pool due to timeout/i.test(msg) ||
+    /Timed out fetching a new connection from the connection pool/i.test(msg)
+  );
+}
+
+async function withTimeoutFallback<T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: T,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => resolve(fallback), ms);
+  });
+  const result = await Promise.race([promise.catch(() => fallback), timeoutPromise]);
+  if (timeoutId) clearTimeout(timeoutId);
+  return result;
+}
 
 function parseTypeFilter(raw: string | null): ItemType | null {
   const t = raw?.trim().toUpperCase();
@@ -27,35 +52,58 @@ export async function GET(req: Request) {
   );
   const typeFilter = parseTypeFilter(searchParams.get("type"));
 
-  const rows: ItemWithReviews[] = await prisma.item.findMany({
-    where: typeFilter ? { type: typeFilter } : undefined,
-    orderBy: { createdAt: "desc" },
-    skip: offset,
-    take: limit,
-    include: { reviews: true },
-  });
+  let payload: Array<{
+    id: string;
+    title: string;
+    year: number;
+    type: ItemType;
+    imageUrl: string | null;
+    averageRating: number;
+    ratingCount: number;
+    tags: string[];
+  }> = [];
+  try {
+    payload = await withTimeoutFallback(
+      (async () => {
+        const rows: ItemWithReviews[] = await prisma.item.findMany({
+          where: typeFilter ? { type: typeFilter } : undefined,
+          orderBy: { createdAt: "desc" },
+          skip: offset,
+          take: limit,
+          include: { reviews: true },
+        });
 
-  const payload = rows.map((item) => {
-    const ratingCount = item.reviews.length;
-    const averageRating =
-      ratingCount === 0
-        ? 0
-        : Number(
-            (item.reviews.reduce((sum, r) => sum + r.rating, 0) / ratingCount).toFixed(
-              1,
-            ),
-          );
-    return {
-      id: item.id,
-      title: item.title,
-      year: item.year ?? 0,
-      type: item.type,
-      imageUrl: item.imageUrl,
-      averageRating,
-      ratingCount,
-      tags: item.tags ?? [],
-    };
-  });
+        return rows.map((item) => {
+          const ratingCount = item.reviews.length;
+          const averageRating =
+            ratingCount === 0
+              ? 0
+              : Number(
+                  (
+                    item.reviews.reduce((sum, r) => sum + r.rating, 0) / ratingCount
+                  ).toFixed(1),
+                );
+          return {
+            id: item.id,
+            title: item.title,
+            year: item.year ?? 0,
+            type: item.type,
+            imageUrl: item.imageUrl,
+            averageRating,
+            ratingCount,
+            tags: item.tags ?? [],
+          };
+        });
+      })(),
+      5000,
+      [],
+    );
+  } catch (err) {
+    if (isConnectionPoolTimeoutError(err)) {
+      return NextResponse.json([]);
+    }
+    throw err;
+  }
 
   return NextResponse.json(payload);
 }
