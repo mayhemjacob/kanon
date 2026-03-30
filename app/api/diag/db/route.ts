@@ -42,7 +42,11 @@ function errorSummary(err: unknown) {
 export async function GET() {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email?.toLowerCase() ?? "";
-  if (!email || !allowedEmails().has(email)) {
+  const bypassAdminCheck = process.env.DIAG_DB_ALLOW_ANY_AUTHENTICATED === "1";
+  if (!email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!bypassAdminCheck && !allowedEmails().has(email)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
