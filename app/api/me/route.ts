@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 function normalizeHandle(raw: string): string {
   return raw.trim().toLowerCase();
@@ -9,6 +10,17 @@ function normalizeHandle(raw: string): string {
 
 function isValidHandle(handle: string): boolean {
   return /^[a-z0-9_]{3,20}$/.test(handle);
+}
+
+function isConnectionPoolTimeoutError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2024") {
+    return true;
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    /Unable to check out connection from the pool due to timeout/i.test(msg) ||
+    /Timed out fetching a new connection from the connection pool/i.test(msg)
+  );
 }
 
 export async function GET() {
@@ -57,19 +69,34 @@ export async function GET() {
     // If bio column doesn't exist yet (e.g. migration not run), fetch without it
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("bio") || msg.includes("Unknown column") || msg.includes("does not exist")) {
-      user = await prisma.user.findUnique({
-        where,
-        select: {
-          handle: true,
-          image: true,
-          _count: {
-            select: {
-              followers: true,
-              following: true,
+      try {
+        user = await prisma.user.findUnique({
+          where,
+          select: {
+            handle: true,
+            image: true,
+            _count: {
+              select: {
+                followers: true,
+                following: true,
+              },
             },
           },
-        },
-      }) as UserSelect | null;
+        }) as UserSelect | null;
+      } catch (fallbackErr) {
+        if (isConnectionPoolTimeoutError(fallbackErr)) {
+          return NextResponse.json(
+            { error: "Service temporarily busy. Please retry." },
+            { status: 503 }
+          );
+        }
+        throw fallbackErr;
+      }
+    } else if (isConnectionPoolTimeoutError(err)) {
+      return NextResponse.json(
+        { error: "Service temporarily busy. Please retry." },
+        { status: 503 }
+      );
     } else {
       throw err;
     }
@@ -102,15 +129,26 @@ export async function PATCH(req: Request) {
 
   const updates: { handle?: string | null; image?: string | null; bio?: string | null } = {};
 
-  const existingUser = await prisma.user.findUnique({
-    where:
-      session.user.id != null
-        ? { id: session.user.id }
-        : session.user.email
-        ? { email: session.user.email }
-        : { id: "" },
-    select: { id: true },
-  });
+  let existingUser: { id: string } | null = null;
+  try {
+    existingUser = await prisma.user.findUnique({
+      where:
+        session.user.id != null
+          ? { id: session.user.id }
+          : session.user.email
+          ? { email: session.user.email }
+          : { id: "" },
+      select: { id: true },
+    });
+  } catch (err) {
+    if (isConnectionPoolTimeoutError(err)) {
+      return NextResponse.json(
+        { error: "Service temporarily busy. Please retry." },
+        { status: 503 }
+      );
+    }
+    throw err;
+  }
 
   if (!existingUser) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -132,13 +170,24 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const existing = await prisma.user.findFirst({
-      where: {
-        handle: normalized,
-        NOT: { id: userId },
-      },
-      select: { id: true },
-    });
+    let existing: { id: string } | null = null;
+    try {
+      existing = await prisma.user.findFirst({
+        where: {
+          handle: normalized,
+          NOT: { id: userId },
+        },
+        select: { id: true },
+      });
+    } catch (err) {
+      if (isConnectionPoolTimeoutError(err)) {
+        return NextResponse.json(
+          { error: "Service temporarily busy. Please retry." },
+          { status: 503 }
+        );
+      }
+      throw err;
+    }
 
     if (existing) {
       return NextResponse.json(
@@ -192,6 +241,12 @@ export async function PATCH(req: Request) {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    if (isConnectionPoolTimeoutError(err)) {
+      return NextResponse.json(
+        { error: "Service temporarily busy. Please retry." },
+        { status: 503 }
+      );
+    }
     const isBioColumnMissing =
       "bio" in updates &&
       (msg.includes("bio") || msg.includes("Unknown column") || msg.includes("does not exist"));

@@ -19,6 +19,15 @@ const emptyProfile: ProfileState = {
   following: null,
 };
 
+function isConnectionPoolTimeoutError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    /Unable to check out connection from the pool due to timeout/i.test(msg) ||
+    /Timed out fetching a new connection from the connection pool/i.test(msg) ||
+    /code:\s*['"]?P2024['"]?/i.test(msg)
+  );
+}
+
 type UserSelect = {
   id: string;
   handle: string | null;
@@ -113,6 +122,16 @@ export default async function ProfilePage() {
     })) as UserSelect | null;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    if (isConnectionPoolTimeoutError(err)) {
+      return (
+        <ProfilePageClient
+          initialProfile={emptyProfile}
+          initialCards={[]}
+          initialLists={[]}
+          initialUnread={0}
+        />
+      );
+    }
     if (
       msg.includes("bio") ||
       msg.includes("Unknown column") ||
@@ -148,23 +167,31 @@ export default async function ProfilePage() {
     );
   }
 
-  const [reviews, lists] = await Promise.all([
-    prisma.review.findMany({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        itemId: true,
-        rating: true,
-        createdAt: true,
-        item: {
-          select: { type: true, title: true, imageUrl: true, year: true },
+  let reviews: Awaited<ReturnType<typeof prisma.review.findMany>> = [];
+  let lists: ProfileListQueryRow[] = [];
+  try {
+    [reviews, lists] = await Promise.all([
+      prisma.review.findMany({
+        where: { userId: user.id },
+        select: {
+          id: true,
+          itemId: true,
+          rating: true,
+          createdAt: true,
+          item: {
+            select: { type: true, title: true, imageUrl: true, year: true },
+          },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      take: PROFILE_REVIEWS_INITIAL_LIMIT,
-    }),
-    loadProfileListsOrEmpty(user.id),
-  ]);
+        orderBy: { createdAt: "desc" },
+        take: PROFILE_REVIEWS_INITIAL_LIMIT,
+      }),
+      loadProfileListsOrEmpty(user.id),
+    ]);
+  } catch (err) {
+    if (!isConnectionPoolTimeoutError(err)) {
+      throw err;
+    }
+  }
 
   const savedSet = await loadSavedListIdSet(
     user.id,

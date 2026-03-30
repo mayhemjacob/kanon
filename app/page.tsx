@@ -62,6 +62,21 @@ const offlineReviews: HomeReview[] = [
     year: 2023,
   },
 ];
+
+async function withTimeoutFallback<T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: T
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => resolve(fallback), ms);
+  });
+  const result = await Promise.race([promise.catch(() => fallback), timeoutPromise]);
+  if (timeoutId) clearTimeout(timeoutId);
+  return result;
+}
+
 function FeedSkeleton() {
   return (
     <section className="space-y-4 pb-20">
@@ -115,7 +130,11 @@ export default async function Home() {
     try
     {
     
-      const { reviews, initialStatus } = await getHomeFeed(session?.user?.id);
+      const { reviews, initialStatus } = await withTimeoutFallback(
+        getHomeFeed(session?.user?.id),
+        3000,
+        { reviews: [] as HomeReview[], initialStatus: {} as Record<string, { saved: boolean; reviewed: boolean; reviewId?: string }> }
+      );
 
       return (
         <Suspense fallback={<FeedSkeleton />}>
