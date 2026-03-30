@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ItemCard, type ItemCardItem, type ItemType } from "@/app/components/ItemCard";
 import { TAGS } from "@/lib/tags";
-import { resizeDataUrl } from "@/lib/resize-image";
 
 export default function AddContentPage() {
   const router = useRouter();
@@ -29,6 +28,7 @@ export default function AddContentPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [imageFileName, setImageFileName] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!trimmed || offline) {
@@ -88,6 +88,7 @@ export default function AddContentPage() {
   function readFileAsDataUrl(file: File) {
     if (!file.type.startsWith("image/")) return;
     setImageFileName(file.name);
+    setSelectedImageFile(file);
     const reader = new FileReader();
     reader.onload = () => {
       const result = typeof reader.result === "string" ? reader.result : null;
@@ -96,6 +97,7 @@ export default function AddContentPage() {
     reader.onerror = () => {
       setCoverImageUrl(null);
       setImageFileName(null);
+      setSelectedImageFile(null);
     };
     reader.readAsDataURL(file);
   }
@@ -136,10 +138,10 @@ export default function AddContentPage() {
     setSubmitError(null);
 
     try {
-      let imageUrl = coverImageUrl ?? null;
-      if (imageUrl?.startsWith("data:") && imageUrl.length > 100_000) {
-        imageUrl = await resizeDataUrl(imageUrl, { maxPx: 512, quality: 0.85 });
-      }
+      const inlineImage =
+        coverImageUrl?.startsWith("data:") || coverImageUrl?.startsWith("blob:");
+      let imageUrl = inlineImage ? null : (coverImageUrl ?? null);
+
       const res = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,6 +162,27 @@ export default function AddContentPage() {
       }
 
       const created = await res.json();
+      if (selectedImageFile) {
+        const formData = new FormData();
+        formData.append("file", selectedImageFile);
+        formData.append("itemId", created.id);
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadJson = (await uploadRes.json()) as { url?: string };
+          if (uploadJson.url) {
+            await fetch(`/api/items/${created.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ imageUrl: uploadJson.url }),
+            });
+          }
+        }
+      }
       router.push(`/items/${created.id}`);
     } catch (err: any) {
       setSubmitError(err.message ?? "Something went wrong");
@@ -384,6 +407,7 @@ export default function AddContentPage() {
                           onClick={() => {
                             setCoverImageUrl(null);
                             setImageFileName(null);
+                            setSelectedImageFile(null);
                           }}
                           className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80"
                           aria-label="Remove image"
@@ -451,6 +475,7 @@ export default function AddContentPage() {
                         const url = e.target.value.trim();
                         setCoverImageUrl(url || null);
                         setImageFileName(url ? "URL" : null);
+                        setSelectedImageFile(null);
                       }}
                     />
                   </div>

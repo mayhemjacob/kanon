@@ -16,10 +16,6 @@ function actorLabel(handle: string | null): string {
   return handle ? handle.replace(/^@/, "") : "Someone";
 }
 
-function imageNeedsUnoptimized(src: string): boolean {
-  return src.startsWith("data:") || src.startsWith("blob:");
-}
-
 export function NotificationsPageClient({
   initialItems,
 }: {
@@ -27,6 +23,7 @@ export function NotificationsPageClient({
 }) {
   const router = useRouter();
   const [items, setItems] = useState<NotificationInboxItem[]>(initialItems);
+  const [failedAvatarIds, setFailedAvatarIds] = useState<Set<string>>(new Set());
 
   const hasAny = items.length > 0;
 
@@ -64,6 +61,7 @@ export function NotificationsPageClient({
       const avatarSrc = actor?.image
         ? normalizeItemImageUrlForNext(actor.image)
         : null;
+      const showAvatarImage = !!avatarSrc && !failedAvatarIds.has(n.id);
       const isUnread = !n.readAt;
 
       return (
@@ -77,14 +75,21 @@ export function NotificationsPageClient({
             aria-label={n.text}
           >
             <div className="relative mt-0.5 h-9 w-9 shrink-0 overflow-hidden rounded-full bg-zinc-200">
-              {avatarSrc ? (
+              {showAvatarImage ? (
                 <Image
                   src={avatarSrc}
                   alt=""
                   fill
                   className="object-cover"
                   sizes="36px"
-                  unoptimized={imageNeedsUnoptimized(avatarSrc)}
+                  unoptimized
+                  onError={() =>
+                    setFailedAvatarIds((prev) => {
+                      const next = new Set(prev);
+                      next.add(n.id);
+                      return next;
+                    })
+                  }
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-zinc-600">
@@ -112,7 +117,7 @@ export function NotificationsPageClient({
         </li>
       );
     });
-  }, [items, handleClick]);
+  }, [items, handleClick, failedAvatarIds]);
 
   return (
     <main className="min-h-screen bg-white">

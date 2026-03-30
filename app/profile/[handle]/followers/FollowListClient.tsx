@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 
 type UserEntry = {
   handle: string;
@@ -42,6 +43,9 @@ export function FollowListClient({
     )
   );
   const [loadingHandles, setLoadingHandles] = useState<Set<string>>(new Set());
+  const [failedAvatarHandles, setFailedAvatarHandles] = useState<Set<string>>(
+    new Set()
+  );
 
   const handleFollowToggle = useCallback(
     async (e: React.MouseEvent, handleSlug: string) => {
@@ -118,6 +122,9 @@ export function FollowListClient({
               const isCurrentUser =
                 currentUserHandle &&
                 getHandleSlug(currentUserHandle) === handleSlug;
+              const avatarSrc = normalizeItemImageUrlForNext(user.image);
+              const showAvatarImage =
+                !!avatarSrc && !failedAvatarHandles.has(handleSlug);
 
               return (
                 <Link
@@ -126,17 +133,21 @@ export function FollowListClient({
                   className="flex items-center gap-4 py-4 transition-colors first:pt-0 hover:bg-zinc-50/50 -mx-2 px-2 rounded-lg"
                 >
                   <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200">
-                    {user.image ? (
+                    {showAvatarImage ? (
                       <Image
-                        src={user.image}
+                        src={avatarSrc}
                         alt=""
                         width={48}
                         height={48}
                         className="h-full w-full object-cover"
                         sizes="48px"
-                        unoptimized={
-                          user.image.startsWith("data:") ||
-                          user.image.startsWith("blob:")
+                        unoptimized
+                        onError={() =>
+                          setFailedAvatarHandles((prev) => {
+                            const next = new Set(prev);
+                            next.add(handleSlug);
+                            return next;
+                          })
                         }
                       />
                     ) : (

@@ -7,6 +7,7 @@ import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { Suspense } from "react";
 import SearchLoading from "./loading";
 import { unstable_cache } from "next/cache";
+import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 
 export type DiscoverPerson = {
   id: string;
@@ -75,7 +76,9 @@ const getDiscoverSeed = unstable_cache(
         averageRating: stat?.averageRating ?? 0,
         ratingCount: stat?.ratingCount ?? 0,
         tags: item.tags ?? [],
-        imageUrl: item.imageUrl ?? null,
+        imageUrl: normalizeItemImageUrlForNext(item.imageUrl, {
+          omitDataAndBlob: true,
+        }),
       };
     });
 
@@ -92,12 +95,14 @@ const getDiscoverSeed = unstable_cache(
         id: u.id,
         handle: `@${u.handle}`,
         bio: u.bio ?? null,
-        image: u.image ?? null,
+        image: normalizeItemImageUrlForNext(u.image, {
+          omitDataAndBlob: true,
+        }),
       }));
 
     return { items: mapped, people };
   },
-  ["discover-seed-v1"],
+  ["discover-seed-v3"],
   { revalidate: 60 },
 );
 

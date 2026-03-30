@@ -102,6 +102,9 @@ export function HomePageClient({
     useState<Set<RatingFilterOption>>(new Set());
   const [sortBy, setSortBy] = useState<SortOption>("reviewDate");
   const [sortModalOpen, setSortModalOpen] = useState(false);
+  const [failedAvatarReviewIds, setFailedAvatarReviewIds] = useState<Set<string>>(
+    new Set()
+  );
 
   const toggleRatingBand = (band: RatingFilterOption) => {
     setSelectedRatingBands((prev) => {
@@ -343,6 +346,8 @@ export function HomePageClient({
             {filtered.map((review, index) => {
               const userAvatarSrc = normalizeItemImageUrlForNext(review.userImage);
               const itemPosterSrc = normalizeItemImageUrlForNext(review.itemImageUrl);
+              const showUserAvatar =
+                !!userAvatarSrc && !failedAvatarReviewIds.has(review.id);
               return (
               <article
                 key={review.id}
@@ -353,7 +358,7 @@ export function HomePageClient({
                     href={`/profile/${encodeURIComponent(review.userName)}`}
                     className="flex h-9 w-9 shrink-0 overflow-hidden rounded-full bg-zinc-200 hover:opacity-90 transition-opacity"
                   >
-                    {userAvatarSrc ? (
+                    {showUserAvatar ? (
                       <Image
                         src={userAvatarSrc}
                         alt=""
@@ -362,7 +367,14 @@ export function HomePageClient({
                         className="h-full w-full object-cover"
                         sizes="36px"
                         priority={index === 0}
-                        unoptimized={imageNeedsUnoptimized(userAvatarSrc)}
+                        unoptimized
+                        onError={() =>
+                          setFailedAvatarReviewIds((prev) => {
+                            const next = new Set(prev);
+                            next.add(review.id);
+                            return next;
+                          })
+                        }
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-xs font-medium text-white">

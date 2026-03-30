@@ -200,6 +200,7 @@ export default async function ItemReviewPage({
   const item = data.review.item;
   const user = review.user;
   const itemCoverSrc = normalizeItemImageUrlForNext(item.imageUrl);
+  const userAvatarSrc = normalizeItemImageUrlForNext(user?.image);
 
   const handle =
     user?.handle != null
@@ -279,17 +280,17 @@ export default async function ItemReviewPage({
           >
             <div className="flex items-center gap-3">
               <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-zinc-200">
-                {user?.image ? (
+                {userAvatarSrc ? (
                   <Image
-                    src={user.image}
+                    src={userAvatarSrc}
                     alt=""
                     width={36}
                     height={36}
                     className="h-full w-full object-cover"
                     sizes="36px"
                     unoptimized={
-                      user.image.startsWith("data:") ||
-                      user.image.startsWith("blob:")
+                      userAvatarSrc.startsWith("data:") ||
+                      userAvatarSrc.startsWith("blob:")
                     }
                   />
                 ) : (
