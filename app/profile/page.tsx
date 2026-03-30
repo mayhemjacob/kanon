@@ -52,6 +52,19 @@ type ProfileListQueryRow = {
   }>;
 };
 
+type ProfileReviewRow = {
+  id: string;
+  itemId: string;
+  rating: number;
+  createdAt: Date;
+  item: {
+    type: "FILM" | "SHOW" | "BOOK";
+    title: string;
+    imageUrl: string | null;
+    year: number | null;
+  };
+};
+
 async function loadProfileListsOrEmpty(userId: string): Promise<ProfileListQueryRow[]> {
   const listClient = (prisma as unknown as { list?: { findMany: Function } }).list;
   if (!listClient?.findMany) return [];
@@ -167,7 +180,7 @@ export default async function ProfilePage() {
     );
   }
 
-  let reviews: Awaited<ReturnType<typeof prisma.review.findMany>> = [];
+  let reviews: ProfileReviewRow[] = [];
   let lists: ProfileListQueryRow[] = [];
   try {
     [reviews, lists] = await Promise.all([
