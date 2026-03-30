@@ -39,15 +39,23 @@ function errorSummary(err: unknown) {
   return { message };
 }
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  const email = session?.user?.email?.toLowerCase() ?? "";
-  const bypassAdminCheck = process.env.DIAG_DB_ALLOW_ANY_AUTHENTICATED === "1";
-  if (!email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (!bypassAdminCheck && !allowedEmails().has(email)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(req: Request) {
+  const diagToken = process.env.DIAG_DB_TOKEN?.trim();
+  const url = new URL(req.url);
+  const requestToken = url.searchParams.get("token")?.trim() ?? "";
+  const tokenAuthorized =
+    !!diagToken && !!requestToken && requestToken === diagToken;
+
+  if (!tokenAuthorized) {
+    const session = await getServerSession(authOptions);
+    const email = session?.user?.email?.toLowerCase() ?? "";
+    const bypassAdminCheck = process.env.DIAG_DB_ALLOW_ANY_AUTHENTICATED === "1";
+    if (!email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!bypassAdminCheck && !allowedEmails().has(email)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   const startedAt = Date.now();
