@@ -19,20 +19,6 @@ function isConnectionPoolTimeoutError(err: unknown): boolean {
   );
 }
 
-async function withTimeoutFallback<T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: T,
-): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  const timeoutPromise = new Promise<T>((resolve) => {
-    timeoutId = setTimeout(() => resolve(fallback), ms);
-  });
-  const result = await Promise.race([promise.catch(() => fallback), timeoutPromise]);
-  if (timeoutId) clearTimeout(timeoutId);
-  return result;
-}
-
 function parseTypeFilter(raw: string | null): ItemType | null {
   const t = raw?.trim().toUpperCase();
   if (t === "FILM" || t === "SHOW" || t === "BOOK") return t;
@@ -63,41 +49,35 @@ export async function GET(req: Request) {
     tags: string[];
   }> = [];
   try {
-    payload = await withTimeoutFallback(
-      (async () => {
-        const rows: ItemWithReviews[] = await prisma.item.findMany({
-          where: typeFilter ? { type: typeFilter } : undefined,
-          orderBy: { createdAt: "desc" },
-          skip: offset,
-          take: limit,
-          include: { reviews: true },
-        });
+    const rows: ItemWithReviews[] = await prisma.item.findMany({
+      where: typeFilter ? { type: typeFilter } : undefined,
+      orderBy: { createdAt: "desc" },
+      skip: offset,
+      take: limit,
+      include: { reviews: true },
+    });
 
-        return rows.map((item) => {
-          const ratingCount = item.reviews.length;
-          const averageRating =
-            ratingCount === 0
-              ? 0
-              : Number(
-                  (
-                    item.reviews.reduce((sum, r) => sum + r.rating, 0) / ratingCount
-                  ).toFixed(1),
-                );
-          return {
-            id: item.id,
-            title: item.title,
-            year: item.year ?? 0,
-            type: item.type,
-            imageUrl: item.imageUrl,
-            averageRating,
-            ratingCount,
-            tags: item.tags ?? [],
-          };
-        });
-      })(),
-      5000,
-      [],
-    );
+    payload = rows.map((item) => {
+      const ratingCount = item.reviews.length;
+      const averageRating =
+        ratingCount === 0
+          ? 0
+          : Number(
+              (item.reviews.reduce((sum, r) => sum + r.rating, 0) / ratingCount).toFixed(
+                1,
+              ),
+            );
+      return {
+        id: item.id,
+        title: item.title,
+        year: item.year ?? 0,
+        type: item.type,
+        imageUrl: item.imageUrl,
+        averageRating,
+        ratingCount,
+        tags: item.tags ?? [],
+      };
+    });
   } catch (err) {
     if (isConnectionPoolTimeoutError(err)) {
       return NextResponse.json([]);

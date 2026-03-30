@@ -38,20 +38,6 @@ function isConnectionPoolTimeoutError(err: unknown): boolean {
   );
 }
 
-async function withTimeoutFallback<T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: T
-): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  const timeoutPromise = new Promise<T>((resolve) => {
-    timeoutId = setTimeout(() => resolve(fallback), ms);
-  });
-  const result = await Promise.race([promise.catch(() => fallback), timeoutPromise]);
-  if (timeoutId) clearTimeout(timeoutId);
-  return result;
-}
-
 const getDiscoverSeed = unstable_cache(
   async () => {
     try {
@@ -151,8 +137,8 @@ async function loadDiscoverPeople(): Promise<DiscoverPerson[]> {
 
 async function DiscoverPageData({ initialTab }: { initialTab: "culture" | "people" }) {
   const [seed, people] = await Promise.all([
-    withTimeoutFallback(getDiscoverSeed(), 2500, { items: [] as ItemCardItem[] }),
-    withTimeoutFallback(loadDiscoverPeople(), 2500, [] as DiscoverPerson[]),
+    getDiscoverSeed(),
+    loadDiscoverPeople(),
   ]);
 
   return (

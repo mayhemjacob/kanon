@@ -17,20 +17,6 @@ function isConnectionPoolTimeoutError(err: unknown): boolean {
   )
 }
 
-async function withTimeoutFallback<T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: T
-): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null
-  const timeoutPromise = new Promise<T>((resolve) => {
-    timeoutId = setTimeout(() => resolve(fallback), ms)
-  })
-  const result = await Promise.race([promise.catch(() => fallback), timeoutPromise])
-  if (timeoutId) clearTimeout(timeoutId)
-  return result
-}
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q")?.trim()
@@ -42,50 +28,45 @@ export async function GET(req: Request) {
 
   let items: ItemWithReviews[] = []
   try {
-    items = await withTimeoutFallback(
-      (async () => {
-        if (q) {
-          const pattern = `%${q}%`
-          const typeSql = typeFilter
-            ? Prisma.sql`AND "type" = ${typeFilter}::"ItemType"`
-            : Prisma.empty
+    if (q) {
+      const pattern = `%${q}%`
+      const typeSql = typeFilter
+        ? Prisma.sql`AND "type" = ${typeFilter}::"ItemType"`
+        : Prisma.empty
 
-          const idRows = await prisma.$queryRaw<{ id: string }[]>`
-            SELECT "id" FROM "Item"
-            WHERE (
-              "title" ILIKE ${pattern}
-              OR ("originalTitle" IS NOT NULL AND "originalTitle" ILIKE ${pattern})
-              OR EXISTS (
-                SELECT 1 FROM unnest("tags") AS t(tag) WHERE tag ILIKE ${pattern}
-              )
-            )
-            ${typeSql}
-            ORDER BY "createdAt" DESC
-            LIMIT ${SEARCH_LIMIT}
-          `
+      const idRows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "Item"
+        WHERE (
+          "title" ILIKE ${pattern}
+          OR ("originalTitle" IS NOT NULL AND "originalTitle" ILIKE ${pattern})
+          OR EXISTS (
+            SELECT 1 FROM unnest("tags") AS t(tag) WHERE tag ILIKE ${pattern}
+          )
+        )
+        ${typeSql}
+        ORDER BY "createdAt" DESC
+        LIMIT ${SEARCH_LIMIT}
+      `
 
-          const ids = idRows.map((r) => r.id)
-          if (ids.length === 0) {
-            return []
-          }
-          const unordered = await prisma.item.findMany({
-            where: { id: { in: ids } },
-            include: { reviews: true },
-          })
-          const byId = new Map(unordered.map((row) => [row.id, row]))
-          return ids.map((id) => byId.get(id)).filter(Boolean) as typeof unordered
-        }
-
-        return prisma.item.findMany({
-          where: typeFilter ? { type: typeFilter } : undefined,
-          orderBy: { createdAt: "desc" },
-          take: 100,
+      const ids = idRows.map((r) => r.id)
+      if (ids.length === 0) {
+        items = []
+      } else {
+        const unordered = await prisma.item.findMany({
+          where: { id: { in: ids } },
           include: { reviews: true },
         })
-      })(),
-      5000,
-      []
-    )
+        const byId = new Map(unordered.map((row) => [row.id, row]))
+        items = ids.map((id) => byId.get(id)).filter(Boolean) as typeof unordered
+      }
+    } else {
+      items = await prisma.item.findMany({
+        where: typeFilter ? { type: typeFilter } : undefined,
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: { reviews: true },
+      })
+    }
   } catch (err) {
     if (isConnectionPoolTimeoutError(err)) {
       return NextResponse.json([])
