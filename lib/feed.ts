@@ -63,8 +63,9 @@ export async function getHomeFeed(
       reviews: HomeReview[];
       initialStatus: Record<string, ItemStatus>;
     }> => {
-    const loadRows = () =>
-      prisma.$queryRaw<FeedRow[]>`
+    let rows: FeedRow[] = [];
+    try {
+      rows = await prisma.$queryRaw<FeedRow[]>`
       SELECT
         r.id,
         r."itemId",
@@ -97,24 +98,11 @@ export async function getHomeFeed(
       ORDER BY r."createdAt" DESC
       LIMIT ${HOME_FEED_INITIAL_LIMIT}
     `;
-    let rows: FeedRow[] = [];
-    try {
-      rows = await loadRows();
     } catch (err) {
       if (isConnectionPoolTimeoutError(err)) {
-        // One quick retry helps absorb transient pool pressure bursts.
-        await new Promise((resolve) => setTimeout(resolve, 120));
-        try {
-          rows = await loadRows();
-        } catch (retryErr) {
-          if (isConnectionPoolTimeoutError(retryErr)) {
-            return { reviews: [], initialStatus: {} };
-          }
-          throw retryErr;
-        }
-      } else {
-        throw err;
+        return { reviews: [], initialStatus: {} };
       }
+      throw err;
     }
 
     const reviews: HomeReview[] = [];

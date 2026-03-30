@@ -27,23 +27,12 @@ function getConfiguredDatabaseUrl(): string | undefined {
     result += (result.includes("?") ? "&" : "?") + "pool_timeout=5"
   }
 
-  const match = result.match(/[?&]connection_limit=(\d+)\b/i)
-  const currentConnectionLimit = match ? Number(match[1]) : null
-  const desiredConnectionLimit =
-    process.env.NODE_ENV === "production" ? 5 : 10
-
-  if (currentConnectionLimit == null) {
-    result +=
-      (result.includes("?") ? "&" : "?") +
-      `connection_limit=${desiredConnectionLimit}`
-  } else if (
-    Number.isFinite(currentConnectionLimit) &&
-    currentConnectionLimit < desiredConnectionLimit
-  ) {
-    result = result.replace(
-      /connection_limit=\d+/i,
-      `connection_limit=${desiredConnectionLimit}`
-    )
+  if (process.env.NODE_ENV !== "production") {
+    if (result.includes("connection_limit=")) {
+      result = result.replace(/connection_limit=\d+/i, "connection_limit=10")
+    } else {
+      result += (result.includes("?") ? "&" : "?") + "connection_limit=10"
+    }
   }
 
   if (!/[?&]connect_timeout=\d+\b/i.test(result)) {
