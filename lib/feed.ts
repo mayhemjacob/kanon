@@ -4,7 +4,6 @@ import { formatTimeAgo } from "@/lib/date";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { unstable_cache } from "next/cache";
 
 
 /** First-load batch size for `/api/feed` (no load-more yet). */
@@ -58,14 +57,9 @@ function isConnectionPoolTimeoutError(err: unknown): boolean {
 export async function getHomeFeed(
   userId: string,
 ): Promise<{ reviews: HomeReview[]; initialStatus: Record<string, ItemStatus> }> {
-  return unstable_cache(
-    async (): Promise<{
-      reviews: HomeReview[];
-      initialStatus: Record<string, ItemStatus>;
-    }> => {
-    let rows: FeedRow[] = [];
-    try {
-      rows = await prisma.$queryRaw<FeedRow[]>`
+  let rows: FeedRow[] = [];
+  try {
+    rows = await prisma.$queryRaw<FeedRow[]>`
       SELECT
         r.id,
         r."itemId",
@@ -98,50 +92,46 @@ export async function getHomeFeed(
       ORDER BY r."createdAt" DESC
       LIMIT ${HOME_FEED_INITIAL_LIMIT}
     `;
-    } catch (err) {
-      if (isConnectionPoolTimeoutError(err)) {
-        return { reviews: [], initialStatus: {} };
-      }
-      throw err;
+  } catch (err) {
+    if (isConnectionPoolTimeoutError(err)) {
+      return { reviews: [], initialStatus: {} };
     }
+    throw err;
+  }
 
-    const reviews: HomeReview[] = [];
-    const initialStatus: Record<string, ItemStatus> = {};
+  const reviews: HomeReview[] = [];
+  const initialStatus: Record<string, ItemStatus> = {};
 
-    for (const row of rows) {
-      const handle = row.user_handle ?? row.user_name ?? row.user_email ?? "user";
-      const userName = handle.startsWith("@") ? handle.slice(1) : handle;
-      const avatarInitial = (userName[0] ?? row.user_email?.[0] ?? "U").toUpperCase();
+  for (const row of rows) {
+    const handle = row.user_handle ?? row.user_name ?? row.user_email ?? "user";
+    const userName = handle.startsWith("@") ? handle.slice(1) : handle;
+    const avatarInitial = (userName[0] ?? row.user_email?.[0] ?? "U").toUpperCase();
 
-      const review: HomeReview = {
-        id: row.id,
-        itemId: row.itemId,
-        userName,
-        avatarInitial,
-        userImage: normalizeItemImageUrlForNext(row.user_image),
-        rating: row.rating,
-        itemType: row.item_type as "FILM" | "SHOW" | "BOOK",
-        itemImageUrl: normalizeItemImageUrlForNext(row.item_imageurl, {
-          omitDataAndBlob: true,
-        }),
-        title: row.item_title,
-        body: row.body ?? null,
-        timeAgo: formatTimeAgo(row.createdAt),
-        createdAt: row.createdAt,
-        year: row.item_year ?? null,
-      };
-      reviews.push(review);
+    const review: HomeReview = {
+      id: row.id,
+      itemId: row.itemId,
+      userName,
+      avatarInitial,
+      userImage: normalizeItemImageUrlForNext(row.user_image),
+      rating: row.rating,
+      itemType: row.item_type as "FILM" | "SHOW" | "BOOK",
+      itemImageUrl: normalizeItemImageUrlForNext(row.item_imageurl, {
+        omitDataAndBlob: true,
+      }),
+      title: row.item_title,
+      body: row.body ?? null,
+      timeAgo: formatTimeAgo(row.createdAt),
+      createdAt: row.createdAt,
+      year: row.item_year ?? null,
+    };
+    reviews.push(review);
 
-      initialStatus[row.itemId] = {
-        saved: !!row.saved,
-        reviewed: !!row.reviewed,
-        ...(row.my_review_id && { reviewId: row.my_review_id }),
-      };
-    }
+    initialStatus[row.itemId] = {
+      saved: !!row.saved,
+      reviewed: !!row.reviewed,
+      ...(row.my_review_id && { reviewId: row.my_review_id }),
+    };
+  }
 
-    return { reviews, initialStatus };
-    },
-    ["feed-v2", userId],
-    { revalidate: 10 },
-  )();
+  return { reviews, initialStatus };
 }
