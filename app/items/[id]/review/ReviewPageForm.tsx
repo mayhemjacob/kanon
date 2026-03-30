@@ -54,7 +54,15 @@ export function ReviewPageForm({ item }: { item: ReviewItemInfo }) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || `Error ${res.status}`);
       }
-      router.push(`/items/${item.id}`);
+      const data = await res.json().catch(() => null);
+      const reviewId =
+        data && typeof data === "object" && typeof data.id === "string"
+          ? data.id
+          : null;
+
+      router.push(
+        reviewId ? `/items/${item.id}/reviews/${reviewId}` : `/items/${item.id}`
+      );
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not save review");
