@@ -82,40 +82,41 @@ const getDiscoverSeed = unstable_cache(
       };
     });
 
-    const peopleRows = await prisma.user.findMany({
-      where: { handle: { not: null } },
-      select: { id: true, handle: true, bio: true, image: true },
-      orderBy: { handle: "asc" },
-      take: DISCOVER_PEOPLE_INITIAL_LIMIT,
-    });
-
-    const people: DiscoverPerson[] = peopleRows
-      .filter((u): u is typeof u & { handle: string } => u.handle != null)
-      .map((u) => ({
-        id: u.id,
-        handle: `@${u.handle}`,
-        bio: u.bio ?? null,
-        image: normalizeItemImageUrlForNext(u.image, {
-          omitDataAndBlob: true,
-        }),
-      }));
-
-    return { items: mapped, people };
+    return { items: mapped };
   },
-  ["discover-seed-v3"],
+  ["discover-seed-v4"],
   { revalidate: 60 },
 );
 
+async function loadDiscoverPeople(): Promise<DiscoverPerson[]> {
+  const peopleRows = await prisma.user.findMany({
+    where: { handle: { not: null } },
+    select: { id: true, handle: true, bio: true, image: true },
+    orderBy: { handle: "asc" },
+    take: DISCOVER_PEOPLE_INITIAL_LIMIT,
+  });
+
+  return peopleRows
+    .filter((u): u is typeof u & { handle: string } => u.handle != null)
+    .map((u) => ({
+      id: u.id,
+      handle: `@${u.handle}`,
+      bio: u.bio ?? null,
+      image: normalizeItemImageUrlForNext(u.image),
+    }));
+}
+
 async function DiscoverPageData({ initialTab }: { initialTab: "culture" | "people" }) {
-  const [session, seed] = await Promise.all([
+  const [session, seed, people] = await Promise.all([
     getServerSession(authOptions),
     getDiscoverSeed(),
+    loadDiscoverPeople(),
   ]);
 
   return (
     <DiscoverPageClient
       items={seed.items}
-      people={seed.people}
+      people={people}
       initialTab={initialTab}
       initialStatus={{}}
       enableRemoteSearch
