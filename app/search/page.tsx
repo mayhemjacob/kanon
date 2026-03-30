@@ -1,9 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import type { ItemCardItem, ItemType } from "@/app/components/ItemCard";
 import { DISCOVER_BROWSE_PAGE_SIZE } from "@/lib/discoverBrowse";
 import { DiscoverPageClient } from "./DiscoverPageClient";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { Suspense } from "react";
 import SearchLoading from "./loading";
 import { unstable_cache } from "next/cache";
@@ -27,74 +26,118 @@ const offlineDiscoverItems: ItemCardItem[] = [
   { id: "5", title: "The Midnight Library", year: 2020, type: "BOOK", averageRating: 7.4, ratingCount: 2, tags: ["Fantasy", "Thought-Provoking"], imageUrl: null },
 ];
 
+function isConnectionPoolTimeoutError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    // P2024: timed out fetching a new connection from the pool
+    if (err.code === "P2024") return true;
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    /Unable to check out connection from the pool due to timeout/i.test(msg) ||
+    /Timed out fetching a new connection from the connection pool/i.test(msg)
+  );
+}
+
+async function withTimeoutFallback<T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: T
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => resolve(fallback), ms);
+  });
+  const result = await Promise.race([promise.catch(() => fallback), timeoutPromise]);
+  if (timeoutId) clearTimeout(timeoutId);
+  return result;
+}
+
 const getDiscoverSeed = unstable_cache(
   async () => {
-    const items = await prisma.item.findMany({
-      take: DISCOVER_BROWSE_PAGE_SIZE,
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        year: true,
-        type: true,
-        imageUrl: true,
-        tags: true,
-      },
-    });
-
-    const itemIds = items.map((i) => i.id);
-    const reviewAggregates =
-      itemIds.length > 0
-        ? await prisma.review.groupBy({
-            by: ["itemId"],
-            where: { itemId: { in: itemIds } },
-            _avg: { rating: true },
-            _count: { _all: true },
-          })
-        : [];
-
-    const statsByItemId = new Map(
-      reviewAggregates.map((row) => [
-        row.itemId,
-        {
-          ratingCount: row._count._all,
-          averageRating:
-            row._count._all === 0 || row._avg.rating == null
-              ? 0
-              : Number(Number(row._avg.rating).toFixed(1)),
+    try {
+      const items = await prisma.item.findMany({
+        take: DISCOVER_BROWSE_PAGE_SIZE,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          year: true,
+          type: true,
+          imageUrl: true,
+          tags: true,
         },
-      ]),
-    );
+      });
 
-    const mapped: ItemCardItem[] = items.map((item) => {
-      const stat = statsByItemId.get(item.id);
-      return {
-        id: item.id,
-        title: item.title,
-        year: item.year ?? 0,
-        type: item.type as ItemType,
-        averageRating: stat?.averageRating ?? 0,
-        ratingCount: stat?.ratingCount ?? 0,
-        tags: item.tags ?? [],
-        imageUrl: normalizeItemImageUrlForNext(item.imageUrl, {
-          omitDataAndBlob: true,
-        }),
-      };
-    });
+      const itemIds = items.map((i) => i.id);
+      const reviewAggregates =
+        itemIds.length > 0
+          ? await prisma.review.groupBy({
+              by: ["itemId"],
+              where: { itemId: { in: itemIds } },
+              _avg: { rating: true },
+              _count: { _all: true },
+            })
+          : [];
 
-    return { items: mapped };
+      const statsByItemId = new Map(
+        reviewAggregates.map((row) => [
+          row.itemId,
+          {
+            ratingCount: row._count._all,
+            averageRating:
+              row._count._all === 0 || row._avg.rating == null
+                ? 0
+                : Number(Number(row._avg.rating).toFixed(1)),
+          },
+        ]),
+      );
+
+      const mapped: ItemCardItem[] = items.map((item) => {
+        const stat = statsByItemId.get(item.id);
+        return {
+          id: item.id,
+          title: item.title,
+          year: item.year ?? 0,
+          type: item.type as ItemType,
+          averageRating: stat?.averageRating ?? 0,
+          ratingCount: stat?.ratingCount ?? 0,
+          tags: item.tags ?? [],
+          imageUrl: normalizeItemImageUrlForNext(item.imageUrl, {
+            omitDataAndBlob: true,
+          }),
+        };
+      });
+
+      return { items: mapped };
+    } catch (err) {
+      if (isConnectionPoolTimeoutError(err)) {
+        return { items: [] as ItemCardItem[] };
+      }
+      throw err;
+    }
   },
   ["discover-seed-v4"],
   { revalidate: 60 },
 );
 
 async function loadDiscoverPeople(): Promise<DiscoverPerson[]> {
-  const peopleRows = await prisma.user.findMany({
-    where: { handle: { not: null } },
-    select: { id: true, handle: true, bio: true, image: true },
-    orderBy: { handle: "asc" },
-    take: DISCOVER_PEOPLE_INITIAL_LIMIT,
-  });
+  let peopleRows: Array<{
+    id: string;
+    handle: string | null;
+    bio: string | null;
+    image: string | null;
+  }> = [];
+  try {
+    peopleRows = await prisma.user.findMany({
+      where: { handle: { not: null } },
+      select: { id: true, handle: true, bio: true, image: true },
+      orderBy: { handle: "asc" },
+      take: DISCOVER_PEOPLE_INITIAL_LIMIT,
+    });
+  } catch (err) {
+    if (isConnectionPoolTimeoutError(err)) return [];
+    throw err;
+  }
 
   return peopleRows
     .filter((u): u is typeof u & { handle: string } => u.handle != null)
@@ -107,10 +150,9 @@ async function loadDiscoverPeople(): Promise<DiscoverPerson[]> {
 }
 
 async function DiscoverPageData({ initialTab }: { initialTab: "culture" | "people" }) {
-  const [session, seed, people] = await Promise.all([
-    getServerSession(authOptions),
-    getDiscoverSeed(),
-    loadDiscoverPeople(),
+  const [seed, people] = await Promise.all([
+    withTimeoutFallback(getDiscoverSeed(), 2500, { items: [] as ItemCardItem[] }),
+    withTimeoutFallback(loadDiscoverPeople(), 2500, [] as DiscoverPerson[]),
   ]);
 
   return (

@@ -22,6 +22,11 @@ function getConfiguredDatabaseUrl(): string | undefined {
     result += (result.includes("?") ? "&" : "?") + "pgbouncer=true"
   }
 
+  // Fail fast on pool exhaustion instead of hanging for ~60s.
+  if (!/[?&]pool_timeout=\d+\b/i.test(result)) {
+    result += (result.includes("?") ? "&" : "?") + "pool_timeout=5"
+  }
+
   if (process.env.NODE_ENV === "production") {
     return result
   }
@@ -32,7 +37,7 @@ function getConfiguredDatabaseUrl(): string | undefined {
     result += (result.includes("?") ? "&" : "?") + "connection_limit=10"
   }
   if (!result.includes("connect_timeout=")) {
-    result += "&connect_timeout=30"
+    result += "&connect_timeout=15"
   }
   return result
 }
