@@ -112,9 +112,7 @@ export async function getHomeFeed(
         itemId: row.itemId,
         userName,
         avatarInitial,
-        userImage: normalizeItemImageUrlForNext(row.user_image, {
-          omitDataAndBlob: true,
-        }),
+        userImage: normalizeItemImageUrlForNext(row.user_image),
         rating: row.rating,
         itemType: row.item_type as "FILM" | "SHOW" | "BOOK",
         itemImageUrl: normalizeItemImageUrlForNext(row.item_imageurl, {
@@ -137,7 +135,7 @@ export async function getHomeFeed(
 
     return { reviews, initialStatus };
     },
-    ["feed", userId],
+    ["feed-v2", userId],
     { revalidate: 10 },
   )();
 }
