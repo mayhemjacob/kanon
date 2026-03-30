@@ -124,7 +124,11 @@ export async function getNotificationsForUser(
     createdAt: toIso(n.createdAt),
     readAt: n.readAt ? toIso(n.readAt) : null,
     actor: n.actor
-      ? { id: n.actor.id, handle: n.actor.handle, image: n.actor.image }
+      ? {
+          id: n.actor.id,
+          handle: n.actor.handle,
+          image: n.actor.image,
+        }
       : null,
   }));
 }
