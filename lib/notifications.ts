@@ -40,6 +40,13 @@ function isMissingNotificationTableError(err: unknown): boolean {
   return /relation .*Notification.* does not exist|42P01/i.test(msg);
 }
 
+function isConnectionPoolTimeoutError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /Unable to check out connection from the pool due to timeout/i.test(
+    msg
+  );
+}
+
 export async function createNotification(input: {
   userId: string;
   type: NotificationType;
@@ -105,6 +112,7 @@ export async function getNotificationsForUser(
     });
   } catch (err) {
     if (isMissingNotificationTableError(err)) return [];
+    if (isConnectionPoolTimeoutError(err)) return [];
     throw err;
   }
 
@@ -126,6 +134,7 @@ export async function getUnreadNotificationCount(userId: string): Promise<number
     return await prisma.notification.count({ where: { userId, readAt: null } });
   } catch (err) {
     if (isMissingNotificationTableError(err)) return 0;
+    if (isConnectionPoolTimeoutError(err)) return 0;
     throw err;
   }
 }

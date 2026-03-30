@@ -31,6 +31,13 @@ type FeedRow = {
   my_review_id: string | null;
 };
 
+function isConnectionPoolTimeoutError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /Unable to check out connection from the pool due to timeout/i.test(
+    msg
+  );
+}
+
 /*
  * Home feed (single round-trip, no N+1):
  * - Restrict to reviews whose author is someone the viewer follows via INNER JOIN Follow
@@ -50,39 +57,47 @@ export async function getHomeFeed(
       reviews: HomeReview[];
       initialStatus: Record<string, ItemStatus>;
     }> => {
-    const rows = await prisma.$queryRaw<FeedRow[]>`
-    SELECT
-      r.id,
-      r."itemId",
-      r.rating,
-      CASE
-        WHEN r.body IS NULL THEN NULL
-        WHEN char_length(r.body) <= ${HOME_BODY_PREVIEW_CHARS}::integer THEN r.body
-        ELSE LEFT(r.body, ${HOME_BODY_PREVIEW_CHARS}::integer) || '…'
-      END AS body,
-      r."createdAt",
-      u.handle    AS user_handle,
-      u.name     AS user_name,
-      u.email    AS user_email,
-      u.image    AS user_image,
-      i.type     AS item_type,
-      i.title    AS item_title,
-      i."imageUrl" AS item_imageurl,
-      i.year     AS item_year,
-      (s."itemId" IS NOT NULL) AS saved,
-      (r2."itemId" IS NOT NULL) AS reviewed,
-      r2.id AS my_review_id
-    FROM "Review" r
-    INNER JOIN "Follow" f
-      ON f."followingId" = r."userId"
-      AND f."followerId" = ${userId}
-    INNER JOIN "User" u ON r."userId" = u.id
-    INNER JOIN "Item" i ON r."itemId" = i.id
-    LEFT JOIN "SavedItem" s ON s."userId" = ${userId} AND s."itemId" = r."itemId"
-    LEFT JOIN "Review" r2 ON r2."userId" = ${userId} AND r2."itemId" = r."itemId"
-    ORDER BY r."createdAt" DESC
-    LIMIT ${HOME_FEED_INITIAL_LIMIT}
-  `;
+    let rows: FeedRow[] = [];
+    try {
+      rows = await prisma.$queryRaw<FeedRow[]>`
+      SELECT
+        r.id,
+        r."itemId",
+        r.rating,
+        CASE
+          WHEN r.body IS NULL THEN NULL
+          WHEN char_length(r.body) <= ${HOME_BODY_PREVIEW_CHARS}::integer THEN r.body
+          ELSE LEFT(r.body, ${HOME_BODY_PREVIEW_CHARS}::integer) || '…'
+        END AS body,
+        r."createdAt",
+        u.handle    AS user_handle,
+        u.name     AS user_name,
+        u.email    AS user_email,
+        u.image    AS user_image,
+        i.type     AS item_type,
+        i.title    AS item_title,
+        i."imageUrl" AS item_imageurl,
+        i.year     AS item_year,
+        (s."itemId" IS NOT NULL) AS saved,
+        (r2."itemId" IS NOT NULL) AS reviewed,
+        r2.id AS my_review_id
+      FROM "Review" r
+      INNER JOIN "Follow" f
+        ON f."followingId" = r."userId"
+        AND f."followerId" = ${userId}
+      INNER JOIN "User" u ON r."userId" = u.id
+      INNER JOIN "Item" i ON r."itemId" = i.id
+      LEFT JOIN "SavedItem" s ON s."userId" = ${userId} AND s."itemId" = r."itemId"
+      LEFT JOIN "Review" r2 ON r2."userId" = ${userId} AND r2."itemId" = r."itemId"
+      ORDER BY r."createdAt" DESC
+      LIMIT ${HOME_FEED_INITIAL_LIMIT}
+    `;
+    } catch (err) {
+      if (isConnectionPoolTimeoutError(err)) {
+        return { reviews: [], initialStatus: {} };
+      }
+      throw err;
+    }
 
     const reviews: HomeReview[] = [];
     const initialStatus: Record<string, ItemStatus> = {};

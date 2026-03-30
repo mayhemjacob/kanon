@@ -94,6 +94,13 @@ const offlineReview: ReviewPageData = {
   reactionSummary: emptyReactionSummary,
 };
 
+function isConnectionPoolTimeoutError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /Unable to check out connection from the pool due to timeout/i.test(
+    msg
+  );
+}
+
 export default async function ItemReviewPage({
   params,
   searchParams,
@@ -112,83 +119,98 @@ export default async function ItemReviewPage({
   if (offline) {
     data = offlineReview;
   } else {
-    const review = await prisma.review.findUnique({
-      where: { id: reviewId },
-      include: {
-        user: { select: { id: true, handle: true, name: true, email: true, image: true } },
-        item: { select: { id: true, title: true, year: true, type: true, imageUrl: true } },
-      },
-    });
-
-    if (!review || review.itemId !== itemId) {
-      return notFound();
-    }
-
-    let saved = false;
-    let reviewedByMe = false;
-    let myReviewId: string | undefined;
-
-    if (session?.user?.id) {
-      const [savedRow, myReview] = await Promise.all([
-        prisma.savedItem.findUnique({
-          where: {
-            userId_itemId: {
-              userId: session.user.id,
-              itemId: review.itemId,
-            },
-          },
-        }),
-        prisma.review.findUnique({
-          where: {
-            userId_itemId: {
-              userId: session.user.id,
-              itemId: review.itemId,
-            },
-          },
-        }),
-      ]);
-
-      saved = !!savedRow;
-      reviewedByMe = !!myReview;
-      myReviewId = myReview?.id;
-    }
-
-    const canEdit = !!(session?.user?.id && review.userId === session.user.id);
-
-    const reactionSummary = await getReviewRatingReactionSummary(
-      reviewId,
-      session?.user?.id
-    );
-
-    data = {
-      review: {
-        id: review.id,
-        rating: review.rating,
-        body: review.body,
-        createdAt: review.createdAt,
-        user: review.user
-          ? {
-              id: review.user.id,
-              handle: review.user.handle,
-              name: review.user.name,
-              email: review.user.email,
-              image: review.user.image,
-            }
-          : null,
-        item: {
-          id: review.item.id,
-          title: review.item.title,
-          year: review.item.year ?? null,
-          type: review.item.type,
-          imageUrl: review.item.imageUrl ?? null,
+    try {
+      const review = await prisma.review.findUnique({
+        where: { id: reviewId },
+        include: {
+          user: { select: { id: true, handle: true, name: true, email: true, image: true } },
+          item: { select: { id: true, title: true, year: true, type: true, imageUrl: true } },
         },
-      },
-      saved,
-      reviewedByMe,
-      canEdit,
-      myReviewId,
-      reactionSummary,
-    };
+      });
+
+      if (!review || review.itemId !== itemId) {
+        return notFound();
+      }
+
+      let saved = false;
+      let reviewedByMe = false;
+      let myReviewId: string | undefined;
+
+      if (session?.user?.id) {
+        const [savedRow, myReview] = await Promise.all([
+          prisma.savedItem.findUnique({
+            where: {
+              userId_itemId: {
+                userId: session.user.id,
+                itemId: review.itemId,
+              },
+            },
+          }),
+          prisma.review.findUnique({
+            where: {
+              userId_itemId: {
+                userId: session.user.id,
+                itemId: review.itemId,
+              },
+            },
+          }),
+        ]);
+
+        saved = !!savedRow;
+        reviewedByMe = !!myReview;
+        myReviewId = myReview?.id;
+      }
+
+      const canEdit = !!(session?.user?.id && review.userId === session.user.id);
+
+      const reactionSummary = await getReviewRatingReactionSummary(
+        reviewId,
+        session?.user?.id
+      );
+
+      data = {
+        review: {
+          id: review.id,
+          rating: review.rating,
+          body: review.body,
+          createdAt: review.createdAt,
+          user: review.user
+            ? {
+                id: review.user.id,
+                handle: review.user.handle,
+                name: review.user.name,
+                email: review.user.email,
+                image: review.user.image,
+              }
+            : null,
+          item: {
+            id: review.item.id,
+            title: review.item.title,
+            year: review.item.year ?? null,
+            type: review.item.type,
+            imageUrl: review.item.imageUrl ?? null,
+          },
+        },
+        saved,
+        reviewedByMe,
+        canEdit,
+        myReviewId,
+        reactionSummary,
+      };
+    } catch (err) {
+      if (isConnectionPoolTimeoutError(err)) {
+        return (
+          <main className="min-h-screen bg-white">
+            <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
+              <p className="text-sm text-zinc-600">
+                We could not load this review right now. Please try again in a moment.
+              </p>
+            </div>
+          </main>
+        );
+      }
+      throw err;
+    }
   }
 
   if (!data) {
