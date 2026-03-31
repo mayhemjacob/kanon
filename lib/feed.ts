@@ -39,7 +39,8 @@ function isConnectionPoolTimeoutError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return (
     /Unable to check out connection from the pool due to timeout/i.test(msg) ||
-    /Timed out fetching a new connection from the connection pool/i.test(msg)
+    /Timed out fetching a new connection from the connection pool/i.test(msg) ||
+    /MaxClientsInSessionMode: max clients reached/i.test(msg)
   );
 }
 

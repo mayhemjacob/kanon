@@ -24,6 +24,7 @@ function isConnectionPoolTimeoutError(err: unknown): boolean {
   return (
     /Unable to check out connection from the pool due to timeout/i.test(msg) ||
     /Timed out fetching a new connection from the connection pool/i.test(msg) ||
+    /MaxClientsInSessionMode: max clients reached/i.test(msg) ||
     /code:\s*['"]?P2024['"]?/i.test(msg)
   );
 }
