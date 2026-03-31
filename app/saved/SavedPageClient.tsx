@@ -41,6 +41,7 @@ export default function SavedPageClient({ initialUnread = 0 }: { initialUnread?:
   const [savedLists, setSavedLists] = useState<SavedList[]>([]);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(false);
+  const [serviceBusy, setServiceBusy] = useState(false);
   const [unsavingId, setUnsavingId] = useState<string | null>(null);
 
   async function handleUnsave(e: React.MouseEvent, itemId: string) {
@@ -67,6 +68,7 @@ export default function SavedPageClient({ initialUnread = 0 }: { initialUnread?:
     let cancelled = false;
     setLoading(true);
     setAuthError(false);
+    setServiceBusy(false);
     (async () => {
       try {
         const requestSaved = () =>
@@ -130,11 +132,16 @@ export default function SavedPageClient({ initialUnread = 0 }: { initialUnread?:
           setAuthError(false);
         } else if (res.status === 401) {
           setAuthError(true);
+        } else if (res.status === 503) {
+          setServiceBusy(true);
+          setSavedItems([]);
+          setSavedLists([]);
         } else {
           setSavedItems([]);
           setSavedLists([]);
         }
       } catch {
+        setServiceBusy(true);
         setSavedItems([]);
         setSavedLists([]);
       } finally {
@@ -174,6 +181,11 @@ export default function SavedPageClient({ initialUnread = 0 }: { initialUnread?:
               sign in again
             </Link>{" "}
             to load your saved items.
+          </div>
+        ) : null}
+        {serviceBusy ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Saved items are temporarily unavailable due to high load. Please try again in a few seconds.
           </div>
         ) : null}
 
