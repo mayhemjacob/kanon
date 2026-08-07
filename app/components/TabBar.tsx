@@ -47,7 +47,7 @@ function TabIcon({ label, active }: { label: string; active: boolean }) {
       );
     case "Add":
       return (
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-white">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-white">
           <svg
             className="h-7 w-7"
             viewBox="0 0 24 24"
