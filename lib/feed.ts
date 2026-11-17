@@ -1,5 +1,6 @@
 import type { HomeReview } from "@/app/HomePageClient";
 import type { ItemStatus } from "@/app/api/items/status/route";
+import { inlineAvatarUrl } from "@/lib/avatar";
 import { formatTimeAgo } from "@/lib/date";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
 import { prisma } from "@/lib/prisma";
@@ -21,7 +22,12 @@ type FeedRow = {
   user_handle: string | null;
   user_name: string | null;
   user_email: string | null;
+  user_id: string;
+  /** NULL when the stored avatar is an inline `data:` URI (served via `/api/avatar/[userId]`). */
   user_image: string | null;
+  user_image_inline: boolean;
+  /** Stored size of the inline avatar; only used to bust the browser cache. */
+  user_image_version: number | null;
   item_type: string;
   item_title: string;
   item_imageurl: string | null;
@@ -74,7 +80,11 @@ export async function getHomeFeed(
         u.handle    AS user_handle,
         u.name     AS user_name,
         u.email    AS user_email,
-        u.image    AS user_image,
+        u.id       AS user_id,
+        -- Never ship base64 avatars through the feed (they can be MBs); see lib/avatar.ts.
+        CASE WHEN left(u.image, 5) IN ('data:', 'blob:') THEN NULL ELSE u.image END AS user_image,
+        (left(u.image, 5) IN ('data:', 'blob:')) AS user_image_inline,
+        CASE WHEN left(u.image, 5) IN ('data:', 'blob:') THEN pg_column_size(u.image) END AS user_image_version,
         i.type     AS item_type,
         i.title    AS item_title,
         i."imageUrl" AS item_imageurl,
@@ -113,7 +123,9 @@ export async function getHomeFeed(
       itemId: row.itemId,
       userName,
       avatarInitial,
-      userImage: normalizeItemImageUrlForNext(row.user_image),
+      userImage: row.user_image_inline
+        ? inlineAvatarUrl(row.user_id, row.user_image_version ?? 0)
+        : normalizeItemImageUrlForNext(row.user_image),
       rating: row.rating,
       itemType: row.item_type as "FILM" | "SHOW" | "BOOK",
       itemImageUrl: normalizeItemImageUrlForNext(row.item_imageurl, {

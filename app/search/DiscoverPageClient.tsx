@@ -28,7 +28,12 @@ function ratingMatchesBand(rating: number, band: RatingFilterOption): boolean {
 }
 
 function imageNeedsUnoptimized(src: string): boolean {
-  return src.startsWith("data:") || src.startsWith("blob:");
+  // `/api/avatar/...?v=` is already a small, cacheable image; Next's optimizer rejects local URLs with query strings.
+  return (
+    src.startsWith("data:") ||
+    src.startsWith("blob:") ||
+    src.startsWith("/api/avatar/")
+  );
 }
 
 function mapApiItemToCard(

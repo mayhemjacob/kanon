@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import SearchLoading from "./loading";
 import { unstable_cache } from "next/cache";
 import { normalizeItemImageUrlForNext } from "@/lib/normalizeItemImageUrl";
+import { inlineAvatarUrl } from "@/lib/avatar";
 
 export type DiscoverPerson = {
   id: string;
@@ -112,15 +113,26 @@ async function loadDiscoverPeople(): Promise<DiscoverPerson[]> {
     id: string;
     handle: string | null;
     bio: string | null;
+    /** NULL when the stored avatar is an inline `data:` URI (served via `/api/avatar/[userId]`). */
     image: string | null;
+    image_inline: boolean;
+    image_version: number | null;
   }> = [];
   try {
-    peopleRows = await prisma.user.findMany({
-      where: { handle: { not: null } },
-      select: { id: true, handle: true, bio: true, image: true },
-      orderBy: { handle: "asc" },
-      take: DISCOVER_PEOPLE_INITIAL_LIMIT,
-    });
+    // Raw SQL so base64 avatars (can be MBs) are never read into the payload; see lib/avatar.ts.
+    peopleRows = await prisma.$queryRaw<typeof peopleRows>`
+      SELECT
+        u.id,
+        u.handle,
+        u.bio,
+        CASE WHEN left(u.image, 5) IN ('data:', 'blob:') THEN NULL ELSE u.image END AS image,
+        (left(u.image, 5) IN ('data:', 'blob:')) AS image_inline,
+        CASE WHEN left(u.image, 5) IN ('data:', 'blob:') THEN pg_column_size(u.image) END AS image_version
+      FROM "User" u
+      WHERE u.handle IS NOT NULL
+      ORDER BY u.handle ASC
+      LIMIT ${DISCOVER_PEOPLE_INITIAL_LIMIT}
+    `;
   } catch (err) {
     if (isConnectionPoolTimeoutError(err)) return [];
     throw err;
@@ -132,7 +144,9 @@ async function loadDiscoverPeople(): Promise<DiscoverPerson[]> {
       id: u.id,
       handle: `@${u.handle}`,
       bio: u.bio ?? null,
-      image: normalizeItemImageUrlForNext(u.image),
+      image: u.image_inline
+        ? inlineAvatarUrl(u.id, u.image_version ?? 0)
+        : normalizeItemImageUrlForNext(u.image),
     }));
 }
 
