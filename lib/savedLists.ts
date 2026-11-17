@@ -30,6 +30,30 @@ export async function loadSavedListIdSet(userId: string, listIds: string[]): Pro
   return new Set(rows.map((r) => r.listId).filter((id) => targetIds.has(id)));
 }
 
+/**
+ * Ids of every list the user has saved. Unlike `loadSavedListIdSet` it doesn't need the list
+ * ids up front, so callers can run it in parallel with the query that loads the lists.
+ */
+export async function loadSavedListIdsForUser(userId: string): Promise<Set<string>> {
+  const savedListClient = getSavedListClient();
+  if (savedListClient?.findMany) {
+    const rows = await savedListClient.findMany({
+      where: { userId },
+      select: { listId: true },
+    });
+    return new Set(rows.map((r: { listId: string }) => r.listId));
+  }
+
+  const rows = await prisma
+    .$queryRaw<Array<{ listId: string }>>`
+      SELECT "listId"
+      FROM "SavedList"
+      WHERE "userId" = ${userId}
+    `
+    .catch(() => []);
+  return new Set(rows.map((r) => r.listId));
+}
+
 export async function isListSavedByUser(userId: string, listId: string): Promise<boolean> {
   const savedListClient = getSavedListClient();
   if (savedListClient?.findUnique) {

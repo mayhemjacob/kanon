@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { getToken } from "next-auth/jwt";
-import { Prisma } from "@prisma/client";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { prisma } from "@/lib/prisma";
 
@@ -17,6 +16,14 @@ type RawSavedListRow = {
   ownerHandle: string | null;
   ownerName: string | null;
   itemCount: bigint;
+};
+
+type RawSavedListPreviewRow = {
+  listId: string;
+  itemId: string;
+  imageUrl: string | null;
+  type: string;
+  title: string;
 };
 
 function isTransientPoolSaturation(err: unknown): boolean {
@@ -61,34 +68,34 @@ export async function GET(req: NextRequest) {
 
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const savedItems = await prisma.savedItem.findMany({
-      where: { userId: user.id },
-      include: {
-        item: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            year: true,
-            imageUrl: true,
+    // `userId` is already known, so these four reads are independent. They used to run one
+    // after another (4 round-trips to Supabase, ~1s); running them together costs ~1 round-trip.
+    // The list previews no longer wait for the lists: they select the same top-N saved lists
+    // with a subquery (same joins/order/limit as the lists query, so orphan rows can't shift it).
+    const [user, savedItems, savedLists, previewRows] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      }),
+      prisma.savedItem.findMany({
+        where: { userId },
+        include: {
+          item: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              year: true,
+              imageUrl: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      take: SAVED_ITEMS_INITIAL_LIMIT,
-    });
-
-    // Use join-based query to avoid Prisma relation crashes on orphan SavedList rows.
-    const savedLists = await prisma
-      .$queryRaw<Array<RawSavedListRow>>`
+        orderBy: { createdAt: "desc" },
+        take: SAVED_ITEMS_INITIAL_LIMIT,
+      }),
+      // Use join-based query to avoid Prisma relation crashes on orphan SavedList rows.
+      prisma
+        .$queryRaw<Array<RawSavedListRow>>`
       SELECT
         sl."id" AS "id",
         l."id" AS "listId",
@@ -104,30 +111,13 @@ export async function GET(req: NextRequest) {
       FROM "SavedList" sl
       JOIN "List" l ON l."id" = sl."listId"
       JOIN "User" u ON u."id" = l."ownerId"
-      WHERE sl."userId" = ${user.id}
+      WHERE sl."userId" = ${userId}
       ORDER BY sl."createdAt" DESC
       LIMIT ${SAVED_LISTS_INITIAL_LIMIT}
     `
-      .catch(() => []);
-
-    const rawSavedLists: RawSavedListRow[] = savedLists;
-    const previewByListId = new Map<
-      string,
-      Array<{ id: string; imageUrl: string | null; type: string; title: string }>
-    >();
-
-    if (rawSavedLists.length > 0) {
-      const listIds = rawSavedLists.map((row) => row.listId);
-      const previewRows = await prisma
-        .$queryRaw<
-          Array<{
-            listId: string;
-            itemId: string;
-            imageUrl: string | null;
-            type: string;
-            title: string;
-          }>
-        >`
+        .catch(() => [] as RawSavedListRow[]),
+      prisma
+        .$queryRaw<Array<RawSavedListPreviewRow>>`
         SELECT x."listId", x."itemId", x."imageUrl", x."type", x."title"
         FROM (
           SELECT
@@ -139,23 +129,39 @@ export async function GET(req: NextRequest) {
             ROW_NUMBER() OVER (PARTITION BY li."listId" ORDER BY li."position" ASC) AS rn
           FROM "ListItem" li
           JOIN "Item" i ON i."id" = li."itemId"
-          WHERE li."listId" IN (${Prisma.join(listIds)})
+          WHERE li."listId" IN (
+            SELECT sl."listId"
+            FROM "SavedList" sl
+            JOIN "List" l ON l."id" = sl."listId"
+            JOIN "User" u ON u."id" = l."ownerId"
+            WHERE sl."userId" = ${userId}
+            ORDER BY sl."createdAt" DESC
+            LIMIT ${SAVED_LISTS_INITIAL_LIMIT}
+          )
         ) AS x
         WHERE x.rn <= 2
         ORDER BY x."listId", x.rn
       `
-        .catch(() => []);
+        .catch(() => [] as RawSavedListPreviewRow[]),
+    ]);
 
-      for (const row of previewRows) {
-        const prev = previewByListId.get(row.listId) ?? [];
-        prev.push({
-          id: row.itemId,
-          imageUrl: row.imageUrl ?? null,
-          type: row.type,
-          title: row.title,
-        });
-        previewByListId.set(row.listId, prev);
-      }
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const previewByListId = new Map<
+      string,
+      Array<{ id: string; imageUrl: string | null; type: string; title: string }>
+    >();
+    for (const row of previewRows) {
+      const prev = previewByListId.get(row.listId) ?? [];
+      prev.push({
+        id: row.itemId,
+        imageUrl: row.imageUrl ?? null,
+        type: row.type,
+        title: row.title,
+      });
+      previewByListId.set(row.listId, prev);
     }
 
     return NextResponse.json({

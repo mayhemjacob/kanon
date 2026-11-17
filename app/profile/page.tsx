@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { loadSavedListIdSet } from "@/lib/savedLists";
+import { loadSavedListIdsForUser } from "@/lib/savedLists";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import ProfilePageClient, {
@@ -96,6 +96,32 @@ async function loadProfileListsOrEmpty(userId: string): Promise<ProfileListQuery
   }
 }
 
+/**
+ * Everything on the profile that only needs the user's id. Loaded together (and started
+ * alongside the user lookup when the session carries the id) instead of three sequential
+ * round-trips to the database.
+ */
+function loadProfileDetails(userId: string) {
+  return Promise.all([
+    prisma.review.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        itemId: true,
+        rating: true,
+        createdAt: true,
+        item: {
+          select: { type: true, title: true, imageUrl: true, year: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: PROFILE_REVIEWS_INITIAL_LIMIT,
+    }) as Promise<ProfileReviewRow[]>,
+    loadProfileListsOrEmpty(userId),
+    loadSavedListIdsForUser(userId),
+  ]);
+}
+
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
 
@@ -117,6 +143,12 @@ export default async function ProfilePage() {
   }
 
   let user: UserSelect | null = null;
+
+  const sessionUserId =
+    typeof session?.user?.id === "string" && session.user.id ? session.user.id : null;
+  const detailsPromise = sessionUserId ? loadProfileDetails(sessionUserId) : null;
+  // If we return before awaiting it (user missing / pool timeout), don't leave an unhandled rejection.
+  detailsPromise?.catch(() => {});
 
   try {
     user = (await prisma.user.findUnique({
@@ -183,34 +215,14 @@ export default async function ProfilePage() {
 
   let reviews: ProfileReviewRow[] = [];
   let lists: ProfileListQueryRow[] = [];
+  let savedSet = new Set<string>();
   try {
-    [reviews, lists] = await Promise.all([
-      prisma.review.findMany({
-        where: { userId: user.id },
-        select: {
-          id: true,
-          itemId: true,
-          rating: true,
-          createdAt: true,
-          item: {
-            select: { type: true, title: true, imageUrl: true, year: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: PROFILE_REVIEWS_INITIAL_LIMIT,
-      }),
-      loadProfileListsOrEmpty(user.id),
-    ]);
+    [reviews, lists, savedSet] = await (detailsPromise ?? loadProfileDetails(user.id));
   } catch (err) {
     if (!isConnectionPoolTimeoutError(err)) {
       throw err;
     }
   }
-
-  const savedSet = await loadSavedListIdSet(
-    user.id,
-    lists.map((l) => l.id),
-  );
 
   const initialCards: ReviewCard[] = reviews.map((r) => ({
     id: r.id,
