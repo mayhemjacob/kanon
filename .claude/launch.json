@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kanon-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "kanon-offline",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["NEXT_PUBLIC_OFFLINE_DEV=1", "npm", "run", "dev", "--", "-p", "3100"],
+      "port": 3100
+    }  ]
+}

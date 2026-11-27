@@ -48,3 +48,6 @@ cursor-chat-export.txt
 
 # Cursor IDE local state
 .cursor/
+
+# Claude Code local settings
+.claude/settings.local.json

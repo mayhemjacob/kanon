@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kanon — Your cultural club</title>
+<meta name="description" content="Kanon is a social app for films, series and books: rate on a 1–10 scale, write what it made you feel, follow friends, and see how your taste matches theirs.">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f5f5f4;
+    --text: #18181b;
+    --muted: #63636b;
+    --line: #e4e4e7;
+    --accent: #0f172a;
+    --accent-text: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b0f19; --surface: #131a2a; --text: #f4f4f5;
+      --muted: #9a9aa6; --line: #232b3f; --accent: #f4f4f5; --accent-text: #0b0f19;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b0f19; --surface: #131a2a; --text: #f4f4f5;
+    --muted: #9a9aa6; --line: #232b3f; --accent: #f4f4f5; --accent-text: #0b0f19;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 56px 16px 96px; }
+  .eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+  h1 { font-size: clamp(36px, 7vw, 52px); line-height: 1.1; margin: 0 0 12px; letter-spacing: -.02em; }
+  .lede { font-size: 20px; color: var(--muted); margin: 0 0 28px; }
+  .btn {
+    display: inline-block; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;
+    background: var(--accent); color: var(--accent-text); margin-right: 8px;
+  }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .hero { width: 100%; border-radius: 12px; margin: 36px 0 8px; display: block; border: 1px solid var(--line); }
+  dl.facts {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 24px;
+    margin: 32px 0 0; padding: 20px; background: var(--surface); border-radius: 12px;
+  }
+  dl.facts dt { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  dl.facts dd { margin: 2px 0 0; font-weight: 600; font-size: 16px; }
+  h2 { font-size: 24px; margin: 56px 0 12px; letter-spacing: -.01em; }
+  p { margin: 0 0 16px; }
+  ul.features { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+  ul.features li { padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px; }
+  ul.features strong { display: block; margin-bottom: 2px; }
+  ul.features span { color: var(--muted); font-size: 16px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; margin: 0; }
+  .tags li { font-size: 14px; padding: 4px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+  .screens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .screens figure { margin: 0; }
+  .screens img { width: 100%; height: auto; display: block; border-radius: 14px; border: 1px solid var(--line); }
+  .screens figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
+  @media (max-width: 640px) { .screens { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { dl.facts { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Project · 2026</p>
+  <h1>Kanon</h1>
+  <p class="lede">Your cultural club — one social home for the films, series and books you love.</p>
+  <a class="btn" href="https://www.kanon.club">Visit kanon.club</a>
+
+  <img class="hero" src="kanon-hero.png" alt="Kanon logo with the tagline “Your cultural club”">
+
+  <dl class="facts">
+    <div><dt>Status</dt><dd>Live</dd></div>
+    <div><dt>Started</dt><dd>February 2026</dd></div>
+    <div><dt>Role</dt><dd>Design &amp; development</dd></div>
+    <div><dt>Type</dt><dd>Full-stack web app</dd></div>
+  </dl>
+
+  <h2>The app</h2>
+  <ul class="screens">
+    <li><figure><img src="screens/home.jpg" alt="For You feed with reviews from people you follow" loading="lazy"><figcaption>For You feed</figcaption></figure></li>
+    <li><figure><img src="screens/discover.jpg" alt="Discover screen with search, type and rating filters" loading="lazy"><figcaption>Discover</figcaption></figure></li>
+    <li><figure><img src="screens/item.jpg" alt="Item page for the film Weapons with poster, rating, director and description" loading="lazy"><figcaption>Item page</figcaption></figure></li>
+    <li><figure><img src="screens/rate.jpg" alt="Rating flow: pick a whole number, then fine-tune with a slider" loading="lazy"><figcaption>Rate &amp; review</figcaption></figure></li>
+  </ul>
+
+  <h2>What it is</h2>
+  <p>Most tracking apps cover a single medium. Kanon treats film, series and books as one thing — culture — and puts friends at the centre. You rate what you’ve watched or read, write a few lines about what it made you <em>feel</em> (not a critique), and follow people whose taste you trust.</p>
+  <p>The name comes from the idea of a “canon”: the works that matter to you, and the people you share them with.</p>
+
+  <h2>What you can do</h2>
+  <ul class="features">
+    <li><strong>Rate and review</strong><span>Ratings run 1.0–10.0 with one decimal: tap a whole number, then fine-tune with a slider. Reviews are personal and emotional by design.</span></li>
+    <li><strong>For You feed</strong><span>A social feed of reviews from the people you follow.</span></li>
+    <li><strong>Discover</strong><span>Browse the catalogue of films, series and books, or switch to find and follow people.</span></li>
+    <li><strong>Lists and saved items</strong><span>Curate lists, keep a watch/read-later shelf, and save other people’s lists.</span></li>
+    <li><strong>Taste match</strong><span>A compatibility score between two users, with a shareable page for each match.</span></li>
+    <li><strong>Shareable pages</strong><span>Reviews, lists and matches have public links with rich previews for WhatsApp, X and other apps.</span></li>
+    <li><strong>Wiki-style item pages</strong><span>Anyone can correct a title’s director, description and tags, so the catalogue improves with use.</span></li>
+    <li><strong>Notifications</strong><span>Follows and reactions to your ratings.</span></li>
+  </ul>
+
+  <h2>Behind the scenes</h2>
+  <p><strong>One catalogue, three sources.</strong> Films and series come from TMDB and books from Google Books. Each is normalised into a single item model, and users can add anything that’s missing.</p>
+  <p><strong>Built for flaky connections.</strong> Kanon runs serverless against a pooled Postgres database, so connection-pool exhaustion is normal rather than exceptional. After a production incident in March 2026, I made the app degrade gracefully: it fails fast, treats pool timeouts as “busy, retry” instead of a 500 error, and runs independent queries concurrently to cut load.</p>
+  <p><strong>Product choices.</strong> There is no inline rating on item pages: it was tried and reverted so that rating always goes through the review flow. Handles are case-insensitive, and the public web only sees what users deliberately share.</p>
+
+  <h2>Built with</h2>
+  <ul class="tags">
+    <li>Next.js 16 (App Router)</li>
+    <li>React 19</li>
+    <li>TypeScript</li>
+    <li>Tailwind CSS 4</li>
+    <li>Prisma</li>
+    <li>PostgreSQL (Supabase)</li>
+    <li>NextAuth · Google sign-in</li>
+    <li>TMDB API</li>
+    <li>Google Books API</li>
+  </ul>
+
+  <p style="margin-top:40px"><a class="btn" href="https://www.kanon.club">Visit kanon.club</a></p>
+</main>
+</body>
+</html>
