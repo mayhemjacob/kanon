@@ -63,7 +63,12 @@ Kanon is pitched as *"your cultural club"* — one social product spanning films
 
 This project is linked to https://github.com/mayhemjacob/kanon (branch `main`). **This repo is public** (it's part of Jacobo's portfolio). Jacobo wants everything backed up on GitHub so it doesn't depend on a single computer:
 
-- At the start of a session: `git pull --ff-only`.
-- After each task or coherent set of changes: `git add` what changed, `git commit` with a clear message, and `git push origin main` — without waiting to be asked.
+Working model: GitHub is the source of truth; the local folder (one folder per project, e.g. `Jacob's Projects/kanon`) is the working copy. Until `git push`, work exists only on this computer.
+
+- At the start of a session: check `git remote -v` points to `github.com/mayhemjacob/kanon`, then `git pull --ff-only`. Remind Jacobo if the remote is missing or wrong.
+- After each task or coherent set of changes (not just at the end of the day): `git add` what changed, `git commit` with a clear message, and `git push origin main` — without waiting to be asked.
+- After pushing, verify it: `git status` must be clean and not "ahead of origin". Tell Jacobo explicitly that the push landed.
+- Only one place edits the project at a time (local folder vs. a cloud session): pull before switching, push before leaving.
 - Never commit `.env*`, keys, passwords, user data or heavy files. Because the repo is public, anything private (internal notes, metrics, business plans) does not belong here.
 - If the push fails (conflict, credentials), tell Jacobo instead of forcing it.
+- If a session ends with uncommitted or unpushed work, say so before closing.
